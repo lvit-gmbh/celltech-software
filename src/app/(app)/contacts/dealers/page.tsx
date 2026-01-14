@@ -66,9 +66,9 @@ export default function DealersPage() {
               ))}
             </TabsList>
           </Tabs>
-          <div className="relative flex-1 max-w-md">
+          <div className="relative flex-1 max-w-md w-full">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground" />
-            <Input placeholder="Search Dealers" className="h-10 pl-10 rounded-lg border text-foreground" />
+            <Input placeholder="Search Dealers" className="h-10 pl-10 rounded-lg border text-foreground w-full" />
           </div>
           <div className="flex items-center gap-2 ml-auto">
             <Button

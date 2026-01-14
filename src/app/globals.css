@@ -82,3 +82,99 @@
   }
 }
 
+/* Modern Scrollbar Styling for Tables */
+@layer utilities {
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  .overflow-auto::-webkit-scrollbar,
+  .overflow-x-auto::-webkit-scrollbar,
+  .overflow-y-auto::-webkit-scrollbar,
+  .overflow-scroll::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  .overflow-auto::-webkit-scrollbar-track,
+  .overflow-x-auto::-webkit-scrollbar-track,
+  .overflow-y-auto::-webkit-scrollbar-track,
+  .overflow-scroll::-webkit-scrollbar-track {
+    @apply bg-transparent;
+    border-radius: 10px;
+  }
+
+  .overflow-auto::-webkit-scrollbar-thumb,
+  .overflow-x-auto::-webkit-scrollbar-thumb,
+  .overflow-y-auto::-webkit-scrollbar-thumb,
+  .overflow-scroll::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .overflow-auto::-webkit-scrollbar-thumb:hover,
+  .overflow-x-auto::-webkit-scrollbar-thumb:hover,
+  .overflow-y-auto::-webkit-scrollbar-thumb:hover,
+  .overflow-scroll::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.3);
+    background-clip: padding-box;
+  }
+
+  .overflow-auto::-webkit-scrollbar-thumb:active,
+  .overflow-x-auto::-webkit-scrollbar-thumb:active,
+  .overflow-y-auto::-webkit-scrollbar-thumb:active,
+  .overflow-scroll::-webkit-scrollbar-thumb:active {
+    background: hsl(var(--muted-foreground) / 0.5);
+    background-clip: padding-box;
+  }
+
+  /* Dark mode scrollbar */
+  .dark .overflow-auto::-webkit-scrollbar-thumb,
+  .dark .overflow-x-auto::-webkit-scrollbar-thumb,
+  .dark .overflow-y-auto::-webkit-scrollbar-thumb,
+  .dark .overflow-scroll::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    background-clip: padding-box;
+  }
+
+  .dark .overflow-auto::-webkit-scrollbar-thumb:hover,
+  .dark .overflow-x-auto::-webkit-scrollbar-thumb:hover,
+  .dark .overflow-y-auto::-webkit-scrollbar-thumb:hover,
+  .dark .overflow-scroll::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.4);
+    background-clip: padding-box;
+  }
+
+  .dark .overflow-auto::-webkit-scrollbar-thumb:active,
+  .dark .overflow-x-auto::-webkit-scrollbar-thumb:active,
+  .dark .overflow-y-auto::-webkit-scrollbar-thumb:active,
+  .dark .overflow-scroll::-webkit-scrollbar-thumb:active {
+    background: hsl(var(--muted-foreground) / 0.6);
+    background-clip: padding-box;
+  }
+
+  /* Firefox */
+  .overflow-auto,
+  .overflow-x-auto,
+  .overflow-y-auto,
+  .overflow-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  .dark .overflow-auto,
+  .dark .overflow-x-auto,
+  .dark .overflow-y-auto,
+  .dark .overflow-scroll {
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  /* Corner styling for webkit browsers */
+  .overflow-auto::-webkit-scrollbar-corner,
+  .overflow-x-auto::-webkit-scrollbar-corner,
+  .overflow-y-auto::-webkit-scrollbar-corner,
+  .overflow-scroll::-webkit-scrollbar-corner {
+    @apply bg-transparent;
+  }
+}
+

@@ -37,6 +37,7 @@ const colorOptions = [
 export function ModelsTable({ activeTab = "all" }: ModelsTableProps) {
   const [allModels, setAllModels] = useState<Model[]>([])
   const [loading, setLoading] = useState(true)
+  const [modelLabels, setModelLabels] = useState<Record<string, string>>({})
 
   useEffect(() => {
     async function loadData() {
@@ -44,6 +45,25 @@ export function ModelsTable({ activeTab = "all" }: ModelsTableProps) {
       try {
         const models = await fetchModels()
         setAllModels(models || [])
+        
+        // Load model labels from div_frontend_options
+        try {
+          const supabase = getSupabaseClient()
+          const { data: modelOptions, error: modelError } = await supabase
+            .from("div_frontend_options")
+            .select("value, label")
+            .eq("type", "Model")
+          
+          if (!modelError && modelOptions) {
+            const modelLabelsMap: Record<string, string> = {}
+            modelOptions.forEach((opt: any) => {
+              modelLabelsMap[String(opt.value)] = opt.label || ""
+            })
+            setModelLabels(modelLabelsMap)
+          }
+        } catch (e) {
+          console.warn("Could not load model labels:", e)
+        }
       } catch (error) {
         console.error("Error loading models:", error)
         setAllModels([])
