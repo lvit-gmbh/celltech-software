@@ -27,6 +27,7 @@ import {
 import { usePagination } from "@/hooks/use-pagination"
 import type { BuildSchedule } from "@/types"
 import { fetchBuildSchedule } from "@/lib/supabase/queries"
+import { UnscheduledBuildsFilterDialog, type FilterRule } from "./unscheduled-builds-filter-dialog"
 
 // Status colors matching the design
 const statusColors: Record<string, string> = {
@@ -226,6 +227,8 @@ export function UnscheduledBuildsTable({ searchQuery: externalSearchQuery }: Uns
   const [loading, setLoading] = useState(true)
   const [internalSearchQuery, setInternalSearchQuery] = useState("")
   const [refreshKey, setRefreshKey] = useState(0)
+  const [filterDialogOpen, setFilterDialogOpen] = useState(false)
+  const [activeFilters, setActiveFilters] = useState<FilterRule[]>([])
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 12,
@@ -356,9 +359,12 @@ export function UnscheduledBuildsTable({ searchQuery: externalSearchQuery }: Uns
   }
 
   const handleFilter = () => {
-    // TODO: Implement filter dialog similar to OrderFilterDialog
-    // For now, just show a placeholder alert
-    alert("Filter functionality will be implemented in the next step.")
+    setFilterDialogOpen(true)
+  }
+
+  const handleApplyFilters = (filters: FilterRule[]) => {
+    setActiveFilters(filters)
+    setPagination({ pageIndex: 0, pageSize: 12 })
   }
 
   if (loading) {
@@ -380,8 +386,14 @@ export function UnscheduledBuildsTable({ searchQuery: externalSearchQuery }: Uns
   }
 
   return (
-    <div className="flex flex-col gap-4 h-full">
-      {/* Search Bar */}
+    <>
+      <UnscheduledBuildsFilterDialog
+        open={filterDialogOpen}
+        onOpenChange={setFilterDialogOpen}
+        onApply={handleApplyFilters}
+      />
+      <div className="flex flex-col gap-4 h-full">
+        {/* Search Bar */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
@@ -540,6 +552,7 @@ export function UnscheduledBuildsTable({ searchQuery: externalSearchQuery }: Uns
           </Button>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   )
 }
