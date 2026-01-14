@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useRef } from "react"
+import { useState, useEffect, useMemo, useRef, useCallback, startTransition, memo } from "react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -43,6 +43,7 @@ export function InventoryTable({ tab, allExpanded = false }: InventoryTableProps
   const [filterDialogOpen, setFilterDialogOpen] = useState(false)
   const [activeFilters, setActiveFilters] = useState<FilterRule[]>([])
   const prevAllExpandedRef = useRef(allExpanded)
+  const isExpandingAllRef = useRef(false)
 
   useEffect(() => {
     async function loadData() {
@@ -269,19 +270,29 @@ export function InventoryTable({ tab, allExpanded = false }: InventoryTableProps
     setFilterDialogOpen(true)
   }
 
-  // Sync accordion value with allExpanded prop
+  // Handler for accordion value changes - direct update for immediate response
+  const handleAccordionValueChange = useCallback((value: string[]) => {
+    setAccordionValue(value)
+  }, [])
+
+  // Sync accordion value with allExpanded prop - immediate update for fast response
   useEffect(() => {
     // Only update if allExpanded actually changed (not just data.length)
     if (prevAllExpandedRef.current !== allExpanded) {
+      isExpandingAllRef.current = true
       const allGroupIds = data.map((_, index) => `group-${index}`)
       if (allExpanded) {
-        // Expand all items
+        // Expand all items - direct synchronous update for immediate response
         setAccordionValue(allGroupIds)
       } else {
-        // Collapse all items
+        // Collapse all items - direct synchronous update
         setAccordionValue([])
       }
       prevAllExpandedRef.current = allExpanded
+      // Reset flag after a short delay to allow animations to complete
+      setTimeout(() => {
+        isExpandingAllRef.current = false
+      }, 150)
     }
   }, [allExpanded, data])
 
@@ -320,8 +331,8 @@ export function InventoryTable({ tab, allExpanded = false }: InventoryTableProps
         <Accordion
           type="multiple"
           value={accordionValue}
-          onValueChange={setAccordionValue}
-          className="w-full"
+          onValueChange={handleAccordionValueChange}
+          className={`w-full ${isExpandingAllRef.current ? '[&_[data-state=open]]:!transition-none' : ''}`}
         >
           {data.map((group, index) => {
             const colorClass = colorOptions[index % colorOptions.length]
@@ -338,7 +349,10 @@ export function InventoryTable({ tab, allExpanded = false }: InventoryTableProps
                     </Badge>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent>
+                <AccordionContent 
+                  className={isExpandingAllRef.current ? "!animate-none [&>div]:!transition-none" : ""}
+                  style={isExpandingAllRef.current ? { animation: 'none', transition: 'none' } : undefined}
+                >
                   <div className="px-4 pb-4">
                     <Table>
                       <TableHeader>
