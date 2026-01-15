@@ -720,7 +720,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex h-full min-h-0 flex-col space-y-4">
       <PageHeader
         title="Dashboard"
         actions={

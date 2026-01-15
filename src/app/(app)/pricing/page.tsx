@@ -9,7 +9,7 @@ import { PriceDialog } from "@/components/pricing/price-dialog"
 
 export default function PricingPage() {
   return (
-    <div className="flex flex-col h-[calc(100vh-200px)]">
+    <div className="flex h-full min-h-0 flex-col">
       {/* Fixed Header Section */}
       <div className="flex-shrink-0 space-y-4 mb-4">
         <PageHeader title="Pricing" />

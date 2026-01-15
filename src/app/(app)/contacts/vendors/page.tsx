@@ -9,7 +9,7 @@ import { VendorDialog } from "@/components/contacts/vendors/vendor-dialog"
 
 export default function VendorsPage() {
   return (
-    <div className="flex h-[calc(100vh-8rem)] flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       {/* Fixed Header Section */}
       <div className="flex-shrink-0 space-y-4 pb-4">
         <PageHeader title="Vendor Overview" />

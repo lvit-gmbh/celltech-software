@@ -30,7 +30,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex h-full min-h-0 flex-col space-y-4">
       <PageHeader
         title={viewMode === "models" ? "Models" : "Frontend Options"}
         actions={
