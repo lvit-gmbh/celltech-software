@@ -834,8 +834,8 @@ export default function DashboardPage() {
 
       {/* Dashboard Table - Scrollable */}
       <div className="flex h-full flex-col">
-        <div className="flex-1 overflow-hidden rounded-lg border shadow-none">
-          <div className="h-full max-h-[calc(100vh-320px)] overflow-auto">
+        <div className="overflow-hidden rounded-lg border shadow-none h-[calc(100vh-300px)]">
+          <div className="h-full overflow-auto">
             {renderTable()}
           </div>
         </div>

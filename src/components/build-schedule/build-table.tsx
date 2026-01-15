@@ -33,6 +33,7 @@ import type { BuildSchedule } from "@/types"
 import { fetchBuildSchedule, updateBuildScheduleOrder } from "@/lib/supabase/queries"
 import type { DateRange } from "react-day-picker"
 import { usePagination } from "@/hooks/use-pagination"
+import { toggleSortingThreeStates, getColumnSortState } from "@/lib/table-sorting"
 import {
   DndContext,
   closestCenter,
@@ -106,9 +107,10 @@ interface SortableRowProps {
   index: number
   onTraveler: (item: BuildSchedule) => void
   onUnschedule: (item: BuildSchedule) => void
+  isSortingActive: boolean
 }
 
-function SortableRow({ row, index, onTraveler, onUnschedule }: SortableRowProps) {
+function SortableRow({ row, index, onTraveler, onUnschedule, isSortingActive }: SortableRowProps) {
   // Ensure unique ID - use index as fallback
   const uniqueId = row.original.id || `row-${index}`
   
@@ -121,6 +123,7 @@ function SortableRow({ row, index, onTraveler, onUnschedule }: SortableRowProps)
     isDragging,
   } = useSortable({ 
     id: uniqueId,
+    disabled: isSortingActive, // Disable drag & drop when sorting is active
   })
 
   const style: React.CSSProperties = {
@@ -146,7 +149,13 @@ function SortableRow({ row, index, onTraveler, onUnschedule }: SortableRowProps)
     >
       {/* Drag Handle Cell */}
       <td className="py-2.5 px-2 align-middle w-10">
-        <DragHandle listeners={listeners} attributes={attributes} isDragging={isDragging} />
+        {isSortingActive ? (
+          <div className="flex items-center justify-center w-8 h-8">
+            <GripVertical className="h-4 w-4 text-muted-foreground/30" />
+          </div>
+        ) : (
+          <DragHandle listeners={listeners} attributes={attributes} isDragging={isDragging} />
+        )}
       </td>
       
       {/* Data Cells */}
@@ -247,6 +256,8 @@ export function BuildScheduleTable({
   )
 
   // Filter data
+  // If column sorting is active, don't preserve sort_order order
+  // If no column sorting, preserve the original sort_order order from database
   const filteredData = useMemo(() => {
     let filtered = data
 
@@ -282,11 +293,21 @@ export function BuildScheduleTable({
       )
     }
 
+    // If column sorting is active, return filtered data as-is
+    // TanStack Table will apply column sorting
+    // If no column sorting, data is already sorted by sort_order from database
     return filtered
-  }, [data, searchQuery, dateRange, showFinished])
+  }, [data, searchQuery, dateRange, showFinished, sorting])
 
-  // Get the item IDs for SortableContext - ensure uniqueness
+  // Get the item IDs for SortableContext from sorted rows
+  // Only enable drag & drop when no sorting is active
   const itemIds = useMemo(() => {
+    // If sorting is active, disable drag & drop by returning empty array
+    if (sorting.length > 0) {
+      return []
+    }
+    
+    // Use filteredData when no sorting, but we need to ensure IDs match the actual rows
     const ids = filteredData.map((item, index) => {
       // Ensure each ID is unique - use index as fallback if ID is empty or duplicate
       const baseId = item.id || `row-${index}`
@@ -309,10 +330,15 @@ export function BuildScheduleTable({
     })
     
     return uniqueIds
-  }, [filteredData])
+  }, [filteredData, sorting])
 
-  // Drag end handler
+  // Drag end handler - only works when no sorting is active
   const handleDragEnd = async (event: DragEndEvent) => {
+    // Disable drag & drop when sorting is active
+    if (sorting.length > 0) {
+      return
+    }
+
     const { active, over } = event
 
     if (over && active.id !== over.id) {
@@ -380,8 +406,8 @@ export function BuildScheduleTable({
     // TODO: Implement Unschedule functionality
   }
 
-  // Column definitions
-  const columns: ColumnDef<BuildSchedule>[] = [
+  // Column definitions - must be memoized to update when sorting changes
+  const columns: ColumnDef<BuildSchedule>[] = useMemo(() => [
     {
       id: "drag-handle",
       header: "",
@@ -390,20 +416,20 @@ export function BuildScheduleTable({
     {
       accessorKey: "startDate",
       header: ({ column }) => {
-        const isSorted = column.getIsSorted()
+        const sortState = getColumnSortState("startDate", sorting)
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(isSorted === "asc")}
+            onClick={() => toggleSortingThreeStates("startDate", sorting, setSorting)}
             className="h-auto p-0 font-medium hover:bg-transparent group"
           >
             <span className="text-xs">Start Date</span>
-            {isSorted === "asc" ? (
-            <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
-          ) : isSorted === "desc" ? (
-            <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
-          ) : (
-            <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+            {sortState === "asc" ? (
+              <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+            ) : sortState === "desc" ? (
+              <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+            ) : (
+              <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
             )}
           </Button>
         )
@@ -432,20 +458,20 @@ export function BuildScheduleTable({
     {
       accessorKey: "orderAsset",
       header: ({ column }) => {
-        const isSorted = column.getIsSorted()
+        const sortState = getColumnSortState("orderAsset", sorting)
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(isSorted === "asc")}
+            onClick={() => toggleSortingThreeStates("orderAsset", sorting, setSorting)}
             className="h-auto p-0 font-medium hover:bg-transparent group"
           >
             <span className="text-xs">Order/Asset</span>
-            {isSorted === "asc" ? (
-            <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
-          ) : isSorted === "desc" ? (
-            <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
-          ) : (
-            <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+            {sortState === "asc" ? (
+              <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+            ) : sortState === "desc" ? (
+              <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+            ) : (
+              <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
             )}
           </Button>
         )
@@ -488,20 +514,20 @@ export function BuildScheduleTable({
     {
       accessorKey: "dealer",
       header: ({ column }) => {
-        const isSorted = column.getIsSorted()
+        const sortState = getColumnSortState("dealer", sorting)
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(isSorted === "asc")}
+            onClick={() => toggleSortingThreeStates("dealer", sorting, setSorting)}
             className="h-auto p-0 font-medium hover:bg-transparent group"
           >
             <span className="text-xs">Dealer</span>
-            {isSorted === "asc" ? (
-            <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
-          ) : isSorted === "desc" ? (
-            <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
-          ) : (
-            <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+            {sortState === "asc" ? (
+              <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+            ) : sortState === "desc" ? (
+              <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+            ) : (
+              <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
             )}
           </Button>
         )
@@ -512,22 +538,25 @@ export function BuildScheduleTable({
     },
     {
       accessorKey: "vin",
-      header: ({ column }) => (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium hover:bg-transparent -ml-3"
-        >
-          VIN
-          {column.getIsSorted() === "asc" ? (
-          <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
-        ) : column.getIsSorted() === "desc" ? (
-          <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
-        ) : (
-          <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
-          )}
-        </Button>
-      ),
+      header: ({ column }) => {
+        const sortState = getColumnSortState("vin", sorting)
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => toggleSortingThreeStates("vin", sorting, setSorting)}
+            className="h-auto p-0 font-medium hover:bg-transparent group"
+          >
+            <span className="text-xs">VIN</span>
+            {sortState === "asc" ? (
+              <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+            ) : sortState === "desc" ? (
+              <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+            ) : (
+              <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+            )}
+          </Button>
+        )
+      },
       cell: ({ row }) => (
         <span className="text-sm">{row.getValue("vin") || "-"}</span>
       ),
@@ -535,20 +564,20 @@ export function BuildScheduleTable({
     {
       accessorKey: "status",
       header: ({ column }) => {
-        const isSorted = column.getIsSorted()
+        const sortState = getColumnSortState("status", sorting)
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(isSorted === "asc")}
+            onClick={() => toggleSortingThreeStates("status", sorting, setSorting)}
             className="h-auto p-0 font-medium hover:bg-transparent group"
           >
             <span className="text-xs">Status</span>
-            {isSorted === "asc" ? (
-            <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
-          ) : isSorted === "desc" ? (
-            <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
-          ) : (
-            <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+            {sortState === "asc" ? (
+              <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+            ) : sortState === "desc" ? (
+              <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+            ) : (
+              <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
             )}
           </Button>
         )
@@ -571,7 +600,7 @@ export function BuildScheduleTable({
         return (
           <Input
             placeholder="Enter notes..."
-            className="w-32 h-7 text-xs"
+            className="w-32 h-7 text-xs border-none focus-visible:ring-0 focus-visible:ring-offset-0"
             defaultValue={notes || ""}
             onClick={(e) => e.stopPropagation()}
           />
@@ -582,7 +611,7 @@ export function BuildScheduleTable({
       id: "actions",
       header: "",
     },
-  ]
+  ], [sorting, setSorting])
 
   useEffect(() => {
     async function loadData() {
@@ -604,7 +633,10 @@ export function BuildScheduleTable({
     loadData()
   }, [])
 
-  const table = useReactTable({
+  // Initialize table with columns and sorted data
+  // When column sorting is active, use getSortedRowModel
+  // When no column sorting, data is already sorted by sort_order from database
+  const tableWithColumns = useReactTable({
     data: filteredData,
     columns,
     getCoreRowModel: getCoreRowModel(),
@@ -616,12 +648,15 @@ export function BuildScheduleTable({
       pagination,
       sorting,
     },
-    getRowId: (row) => row.id,
+    getRowId: (row, index) => row.id || `row-${index}`,
+    manualSorting: false, // Enable automatic sorting
+    // Only apply sorting when sorting state is not empty
+    enableSorting: true,
   })
 
   const { pages, showLeftEllipsis, showRightEllipsis } = usePagination({
-    currentPage: table.getState().pagination.pageIndex + 1,
-    totalPages: table.getPageCount(),
+    currentPage: tableWithColumns.getState().pagination.pageIndex + 1,
+    totalPages: tableWithColumns.getPageCount(),
     paginationItemsToDisplay: 5,
   })
 
@@ -652,11 +687,11 @@ export function BuildScheduleTable({
         onDragEnd={handleDragEnd}
         modifiers={[restrictToVerticalAxis, restrictToParentElement]}
       >
-        <div className="flex-1 min-h-0 overflow-hidden rounded-lg border shadow-none flex flex-col">
+        <div className="overflow-hidden rounded-lg border shadow-none flex flex-col h-[calc(100vh-300px)]">
           <div className="flex-1 min-h-0 overflow-auto">
             <table className="w-full caption-bottom text-sm">
               <thead className="sticky top-0 z-20 bg-background [&_tr]:border-b">
-                {table.getHeaderGroups().map((headerGroup) => (
+                {tableWithColumns.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id} className="border-b">
                     <th className="h-9 px-2 w-10 text-left align-middle font-medium text-muted-foreground bg-background border-b"></th>
                     {headerGroup.headers.map((header) => {
@@ -680,8 +715,8 @@ export function BuildScheduleTable({
               </thead>
               <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
                 <tbody className="[&_tr:last-child]:border-0">
-                  {table.getRowModel().rows?.length ? (
-                    table.getRowModel().rows.map((row, index) => {
+                  {tableWithColumns.getRowModel().rows?.length ? (
+                    tableWithColumns.getRowModel().rows.map((row, index) => {
                       // Ensure unique key for React
                       const uniqueKey = row.original.id || `row-${index}-${row.id}`
                       return (
@@ -691,6 +726,7 @@ export function BuildScheduleTable({
                           index={index}
                           onTraveler={handleTraveler}
                           onUnschedule={handleUnschedule}
+                          isSortingActive={sorting.length > 0}
                         />
                       )
                     })
@@ -720,8 +756,8 @@ export function BuildScheduleTable({
             <PaginationContent>
               <PaginationItem>
                 <PaginationPrevious
-                  onClick={() => table.previousPage()}
-                  disabled={!table.getCanPreviousPage()}
+                  onClick={() => tableWithColumns.previousPage()}
+                  disabled={!tableWithColumns.getCanPreviousPage()}
                 />
               </PaginationItem>
 
@@ -732,12 +768,12 @@ export function BuildScheduleTable({
               )}
 
               {pages.map((page) => {
-                const isActive = page === table.getState().pagination.pageIndex + 1
+                const isActive = page === tableWithColumns.getState().pagination.pageIndex + 1
                 return (
                   <PaginationItem key={page}>
                     <PaginationLink
                       isActive={isActive}
-                      onClick={() => table.setPageIndex(page - 1)}
+                      onClick={() => tableWithColumns.setPageIndex(page - 1)}
                       aria-current={isActive ? "page" : undefined}
                     >
                       {page}
@@ -754,8 +790,8 @@ export function BuildScheduleTable({
 
               <PaginationItem>
                 <PaginationNext
-                  onClick={() => table.nextPage()}
-                  disabled={!table.getCanNextPage()}
+                  onClick={() => tableWithColumns.nextPage()}
+                  disabled={!tableWithColumns.getCanNextPage()}
                 />
               </PaginationItem>
             </PaginationContent>

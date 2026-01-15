@@ -417,8 +417,8 @@ export function ShippingCompaniesTable() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex-1 overflow-hidden rounded-lg border shadow-none flex flex-col">
-        <div className="flex-1 overflow-auto">
+      <div className="overflow-hidden rounded-lg border shadow-none flex flex-col h-[calc(100vh-300px)]">
+        <div className="flex-1 min-h-0 overflow-auto">
           <table className="w-full caption-bottom text-sm">
             <thead className="sticky top-0 z-20 bg-background [&_tr]:border-b">
               {table.getHeaderGroups().map((headerGroup) => (

@@ -383,7 +383,7 @@ export function DealerTable() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex-1 overflow-hidden rounded-lg border shadow-none">
+      <div className="overflow-hidden rounded-lg border shadow-none h-[calc(100vh-300px)]">
         <div className="h-full overflow-auto">
           <table className="w-full caption-bottom text-sm">
             <thead className="sticky top-0 z-20 bg-background [&_tr]:border-b">

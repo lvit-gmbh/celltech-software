@@ -257,7 +257,7 @@ export function PricingTable() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex-1 overflow-hidden rounded-lg border shadow-none flex flex-col">
+      <div className="overflow-hidden rounded-lg border shadow-none flex flex-col h-[calc(100vh-300px)]">
         <div className="sticky top-0 z-20 border-b bg-background px-3 py-2 flex-shrink-0">
           <div className="grid grid-cols-9 gap-4 text-xs font-medium text-muted-foreground">
             <button
@@ -325,7 +325,7 @@ export function PricingTable() {
             </button>
           </div>
         </div>
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 min-h-0 overflow-auto">
           <Accordion type="multiple" className="w-full">
             {paginatedData.map((typeGroup, typeIndex) => (
               <AccordionItem key={`type-${typeGroup.type}`} value={`type-${typeIndex}`} className="border-b">

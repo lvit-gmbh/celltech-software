@@ -146,6 +146,7 @@ export async function fetchBuildSchedule() {
     
     // Load all data from schedule table
     // Sort by sort_order if available, otherwise by id
+    // This order will be used when no column sorting is active
     const { data, error } = await supabase
       .from("schedule")
       .select("*")
@@ -1086,6 +1087,66 @@ export async function updateOrderVIN(orderId: number, vin: string) {
     return mapOrder(data)
   } catch (error) {
     throw error instanceof Error ? error : new Error("Failed to update VIN")
+  }
+}
+
+// Helper function to get shipments with numeric IDs for mapping
+// Maps shipment.id -> shipment.label for use in order tables
+export async function fetchShipmentsForMapping() {
+  if (!isSupabaseConfigured()) {
+    return []
+  }
+
+  try {
+    const supabase = getSupabaseClient()
+    // Select id and label from shipment table
+    const { data, error } = await supabase.from("shipment").select("id, label")
+
+    if (error) {
+      console.error("Error fetching shipments for mapping:", error)
+      return []
+    }
+
+    if (!data || data.length === 0) {
+      console.warn("No shipment data returned from database")
+      return []
+    }
+
+    const mapped = (data || []).map((item: any) => {
+      // Convert id to number (handle both string and number IDs)
+      const id = typeof item.id === 'number' ? item.id : parseInt(String(item.id), 10)
+      
+      // Get label from shipment table - this is what we want to display
+      // Check multiple possible field names
+      const label = item.label || item.shipping_id || item.shippingId || ""
+      
+      return {
+        id: isNaN(id) ? 0 : id,
+        label: label
+      }
+    }).filter((shipment) => shipment.id > 0) // Filter out invalid IDs
+    
+    console.log("Fetched shipments for mapping:", mapped.length, "shipments")
+    if (mapped.length > 0) {
+      const sample = mapped.slice(0, 5)
+      console.log("Sample shipments (first 5):", sample)
+      const withLabels = mapped.filter(s => s.label && s.label.trim() !== "")
+      console.log("Shipments with non-empty labels:", withLabels.length, "out of", mapped.length)
+      if (withLabels.length > 0) {
+        console.log("Sample shipments with labels:", withLabels.slice(0, 3))
+      } else {
+        console.warn("No shipments have labels! All labels are empty.")
+        // Log a sample to see what the data looks like
+        if (data && data.length > 0) {
+          console.log("Sample raw shipment data:", data.slice(0, 2))
+        }
+      }
+    }
+    
+    return mapped
+  } catch (error) {
+    console.error("Exception in fetchShipmentsForMapping:", error)
+    return []
   }
 }
 

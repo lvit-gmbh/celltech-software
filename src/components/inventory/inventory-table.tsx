@@ -401,7 +401,7 @@ export function InventoryTable({ tab, allExpanded = false }: InventoryTableProps
   }
 
   return (
-    <div className="flex flex-col h-full rounded-lg border shadow-none overflow-hidden">
+    <div className="flex flex-col rounded-lg border shadow-none overflow-hidden h-[calc(100vh-300px)]">
       {/* Column Headers - Fixed */}
       <div className="flex-shrink-0 border-b bg-background px-3 py-2 z-10">
         <div className="grid grid-cols-8 gap-4 text-xs font-medium text-muted-foreground">

@@ -227,7 +227,7 @@ export function ModelsTable({ activeTab = "all" }: ModelsTableProps) {
   }
 
   return (
-    <div className="flex flex-col rounded-lg border shadow-none overflow-hidden h-[calc(100vh-220px)]">
+    <div className="flex flex-col rounded-lg border shadow-none overflow-hidden h-[calc(100vh-300px)]">
       {/* Sticky Header mit Spalten-Titeln */}
       <div className="sticky top-0 z-20 border-b bg-background">
         <div className="grid grid-cols-7 gap-4 px-4 py-1.5 text-xs font-medium text-muted-foreground">

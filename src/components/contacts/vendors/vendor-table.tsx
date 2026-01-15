@@ -305,7 +305,7 @@ export function VendorTable() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex-1 min-h-0 overflow-hidden rounded-lg border shadow-none">
+      <div className="overflow-hidden rounded-lg border shadow-none h-[calc(100vh-300px)]">
         <div className="h-full overflow-auto">
           <table className="w-full caption-bottom text-sm">
             <thead className="sticky top-0 z-20 bg-background [&_tr]:border-b">

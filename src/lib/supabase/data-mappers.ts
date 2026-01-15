@@ -69,7 +69,7 @@ export function mapOrder(data: any): Order {
     next: data.next || data.Next || null,
     vin_num: data.vin_num || data.vinNum || data.vin || "",
     stock_num: data.stock_num || data.stockNum || data.stock || null,
-    shipment_id: data.shipment_id || data.shipmentId || data.shipment || null,
+    shipment_id: data.shipment_id != null ? Number(data.shipment_id || data.shipmentId || data.shipment || 0) : null,
     brightview: data.brightview || data.brightView || false,
     template: data.template || data.Template || null,
     vin_sticker: data.vin_sticker || data.vinSticker || null,

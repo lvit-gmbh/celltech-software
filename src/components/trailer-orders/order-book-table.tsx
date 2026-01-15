@@ -30,7 +30,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import type { Order } from "@/types"
-import { fetchOrders, fetchDealersForMapping, deleteOrder } from "@/lib/supabase/queries"
+import { fetchOrders, fetchDealersForMapping, fetchShipmentsForMapping, deleteOrder } from "@/lib/supabase/queries"
 import { OrderFilterDialog, type FilterRule, type FilterField, type FilterOperator } from "./order-filter-dialog"
 import { getSupabaseClient } from "@/lib/supabase/client"
 import { toggleSortingThreeStates, getColumnSortState } from "@/lib/table-sorting"
@@ -40,6 +40,7 @@ const createColumns = (
   setSorting: (sorting: SortingState | ((prev: SortingState) => SortingState)) => void,
   dealers: Record<number, string>,
   modelLabels: Record<string, string>,
+  shipmentLabels: Record<number, string>,
   onDelete: (order: Order) => void
 ): ColumnDef<Order>[] => [
   {
@@ -160,18 +161,63 @@ const createColumns = (
       )
     },
     cell: ({ row }) => {
-      const shipmentId = row.getValue("shipment_id") as string | null
-      if (!shipmentId) {
+      const order = row.original
+      const shipmentIdValue = order.shipment_id
+      
+      // Skip if shipment_id is null, undefined, or 0 (invalid)
+      if (shipmentIdValue === null || shipmentIdValue === undefined || shipmentIdValue === 0) {
         return null
       }
-      return (
-        <span 
-          className="inline-flex items-center justify-center rounded-full text-xs font-medium text-white shadow-sm [text-shadow:0_0_8px_rgba(255,255,255,0.3)]"
-          style={{ backgroundColor: '#336699', padding: '0px 8px' }}
-        >
-          {shipmentId}
-        </span>
-      )
+      
+      // Convert order.shipment_id to number for lookup in shipmentsMap
+      // This shipment_id should match the id in the shipment table
+      let shipmentIdNum: number
+      if (typeof shipmentIdValue === 'number') {
+        shipmentIdNum = shipmentIdValue
+      } else if (typeof shipmentIdValue === 'string') {
+        shipmentIdNum = parseInt(shipmentIdValue, 10)
+      } else {
+        shipmentIdNum = Number(shipmentIdValue)
+      }
+      
+      // Skip if conversion failed
+      if (isNaN(shipmentIdNum) || shipmentIdNum <= 0) {
+        return null
+      }
+      
+      // Look up the label from shipment table using the shipment_id
+      // shipmentLabels map: shipment.id -> shipment.label
+      const shipmentLabel = shipmentLabels[shipmentIdNum]
+      
+      // Determine what to display
+      let displayText: string | null = null
+      
+      if (shipmentLabel !== undefined) {
+        // Label exists in map
+        if (shipmentLabel && shipmentLabel.trim() !== "") {
+          // Use the label from shipment table
+          displayText = shipmentLabel
+        } else {
+          // Label exists but is empty - use ID as fallback
+          displayText = String(shipmentIdNum)
+        }
+      } else {
+        // No label found in map - use ID as fallback so user can see something
+        displayText = String(shipmentIdNum)
+      }
+      
+      if (displayText) {
+        return (
+          <span 
+            className="inline-flex items-center justify-center rounded-full text-xs font-medium text-white shadow-sm [text-shadow:0_0_8px_rgba(255,255,255,0.3)]"
+            style={{ backgroundColor: '#336699', padding: '0px 8px' }}
+          >
+            {displayText}
+          </span>
+        )
+      }
+      
+      return null
     },
   },
   {
@@ -411,6 +457,7 @@ export function OrderBookTable({ brightviewFilter, searchQuery, showClosed }: Or
   const [totalCount, setTotalCount] = useState(0)
   const [dealers, setDealers] = useState<Record<number, string>>({})
   const [modelLabels, setModelLabels] = useState<Record<string, string>>({})
+  const [shipmentLabels, setShipmentLabels] = useState<Record<number, string>>({})
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [filterDialogOpen, setFilterDialogOpen] = useState(false)
   const [activeFilters, setActiveFilters] = useState<FilterRule[]>([])
@@ -440,7 +487,7 @@ export function OrderBookTable({ brightviewFilter, searchQuery, showClosed }: Or
     }
   }
 
-  const applyFilter = (order: Order, rule: FilterRule, dealersMap: Record<number, string>): boolean => {
+  const applyFilter = (order: Order, rule: FilterRule, dealersMap: Record<number, string>, shipmentsMap: Record<number, string>): boolean => {
     const { field, operator, value } = rule
     const filterValue = value.toLowerCase().trim()
 
@@ -473,7 +520,13 @@ export function OrderBookTable({ brightviewFilter, searchQuery, showClosed }: Or
         orderValue = order.vin_num || ""
         break
       case "shipment_id":
-        orderValue = order.shipment_id?.toString() || ""
+        // Use shipment label if available, otherwise fall back to ID
+        const shipmentId = order.shipment_id
+        if (shipmentId && shipmentsMap[shipmentId]) {
+          orderValue = shipmentsMap[shipmentId]
+        } else {
+          orderValue = order.shipment_id?.toString() || ""
+        }
         break
     }
 
@@ -518,7 +571,7 @@ export function OrderBookTable({ brightviewFilter, searchQuery, showClosed }: Or
     }
   }
 
-  const applyFilters = (orders: Order[], filters: FilterRule[], dealersMap: Record<number, string>): Order[] => {
+  const applyFilters = (orders: Order[], filters: FilterRule[], dealersMap: Record<number, string>, shipmentsMap: Record<number, string>): Order[] => {
     if (filters.length === 0) {
       return orders
     }
@@ -529,7 +582,7 @@ export function OrderBookTable({ brightviewFilter, searchQuery, showClosed }: Or
 
       for (let i = 0; i < filters.length; i++) {
         const rule = filters[i]
-        const ruleResult = applyFilter(order, rule, dealersMap)
+        const ruleResult = applyFilter(order, rule, dealersMap, shipmentsMap)
 
         if (i === 0) {
           result = ruleResult
@@ -574,10 +627,11 @@ export function OrderBookTable({ brightviewFilter, searchQuery, showClosed }: Or
         order.spare_tire,
       ].filter(Boolean).length
 
+      const shipmentLabel = shipmentLabels[order.shipment_id] || order.shipment_id || ""
       return [
         number,
         dealerName,
-        order.shipment_id || "",
+        shipmentLabel,
         order.model || "",
         order.order_date ? new Date(order.order_date).toLocaleDateString() : "",
         order.fin_date ? new Date(order.fin_date).toLocaleDateString() : "",
@@ -612,9 +666,10 @@ export function OrderBookTable({ brightviewFilter, searchQuery, showClosed }: Or
     async function loadData() {
       setLoading(true)
       try {
-        // Load dealers, orders, and model labels in parallel
-        const [dealersList, orders] = await Promise.all([
+        // Load dealers, shipments, orders, and model labels in parallel
+        const [dealersList, shipmentsList, orders] = await Promise.all([
           fetchDealersForMapping(),
+          fetchShipmentsForMapping(),
           fetchOrders(brightviewFilter)
         ])
 
@@ -630,6 +685,45 @@ export function OrderBookTable({ brightviewFilter, searchQuery, showClosed }: Or
         })
         
         setDealers(dealersMap)
+
+        // Build shipments map - map shipment id (from shipment table) to shipment label
+        // This map will be used to look up the label based on order.shipment_id
+        const shipmentsMap: Record<number, string> = {}
+        shipmentsList.forEach((shipment: { id: number; label: string }) => {
+          const shipmentId = typeof shipment.id === 'number' ? shipment.id : parseInt(String(shipment.id), 10)
+          if (!isNaN(shipmentId) && shipmentId > 0) {
+            // Map: shipment.id -> shipment.label
+            // When order.shipment_id matches shipment.id, we'll display shipment.label
+            shipmentsMap[shipmentId] = shipment.label || ""
+          }
+        })
+        console.log("Shipments loaded:", shipmentsList.length)
+        const ordersWithShipments = orders.filter(o => o.shipment_id != null && o.shipment_id > 0)
+        console.log("Orders with shipment_id:", ordersWithShipments.length)
+        if (ordersWithShipments.length > 0) {
+          const sample = ordersWithShipments.slice(0, 5).map(o => {
+            const sid = Number(o.shipment_id)
+            return {
+              orderId: o.id,
+              shipment_id: o.shipment_id,
+              shipment_id_type: typeof o.shipment_id,
+              shipment_id_num: sid,
+              hasLabel: shipmentsMap[sid] !== undefined,
+              label: shipmentsMap[sid],
+              labelLength: shipmentsMap[sid]?.length || 0
+            }
+          })
+          console.log("Sample order shipment_ids:", sample)
+          
+          // Check how many orders have labels
+          const ordersWithLabels = ordersWithShipments.filter(o => {
+            const sid = Number(o.shipment_id)
+            const label = shipmentsMap[sid]
+            return label !== undefined && label && label.trim() !== ""
+          })
+          console.log("Orders with valid labels:", ordersWithLabels.length, "out of", ordersWithShipments.length)
+        }
+        setShipmentLabels(shipmentsMap)
 
         // Load model labels from div_frontend_options
         try {
@@ -676,7 +770,7 @@ export function OrderBookTable({ brightviewFilter, searchQuery, showClosed }: Or
 
         // Apply custom filters
         if (activeFilters.length > 0) {
-          filteredOrders = applyFilters(filteredOrders, activeFilters, dealersMap)
+          filteredOrders = applyFilters(filteredOrders, activeFilters, dealersMap, shipmentsMap)
         }
         
         setAllData(orders)
@@ -694,9 +788,9 @@ export function OrderBookTable({ brightviewFilter, searchQuery, showClosed }: Or
   }, [brightviewFilter, searchQuery, showClosed, activeFilters, refreshKey])
 
   const columns = useMemo(() => {
-    const cols = createColumns(sorting, setSorting, dealers, modelLabels, handleDelete)
+    const cols = createColumns(sorting, setSorting, dealers, modelLabels, shipmentLabels, handleDelete)
     return cols
-  }, [sorting, setSorting, dealers, modelLabels, handleDelete])
+  }, [sorting, setSorting, dealers, modelLabels, shipmentLabels, handleDelete])
 
   const table = useReactTable({
     data,
@@ -744,7 +838,7 @@ export function OrderBookTable({ brightviewFilter, searchQuery, showClosed }: Or
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex-1 min-h-0 overflow-hidden rounded-lg border shadow-none flex flex-col">
+      <div className="overflow-hidden rounded-lg border shadow-none flex flex-col h-[calc(100vh-300px)]">
         <div className="flex-1 min-h-0 overflow-auto">
           <table className="w-full caption-bottom text-sm">
             <thead className="sticky top-0 z-20 bg-background [&_tr]:border-b">
