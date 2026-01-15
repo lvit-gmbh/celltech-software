@@ -116,18 +116,18 @@ export function ShipmentCard({ shipment, compact = false, onClick }: ShipmentCar
           
           {/* Orders - show VIN and Model from orders */}
           {shipment.orders && shipment.orders.length > 0 && (
-            <div className="space-y-2 pt-2 border-t border-border/50">
+            <div className="space-y-3 pt-2 border-t border-border/50">
               {shipment.orders.map((order, index) => (
                 <div key={order.id || index} className="space-y-1">
                   {/* Order Model and VIN */}
-                  <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex flex-col items-start gap-0.5">
                     {order.modelLabel && (
                       <div className="text-xs font-medium text-foreground">
                         {order.modelLabel}
                       </div>
                     )}
                     {order.vin_num && (
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-muted-foreground leading-tight">
                         <span className="font-medium">VIN:</span> #{order.vin_num}
                       </div>
                     )}
@@ -155,14 +155,14 @@ export function ShipmentCard({ shipment, compact = false, onClick }: ShipmentCar
           
           {/* Fallback: Model and VIN if no orders */}
           {(!shipment.orders || shipment.orders.length === 0) && (
-            <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex flex-col items-start gap-0.5">
               {shipment.model && (
                 <div className="text-xs text-muted-foreground">
                   <span className="font-medium">Model:</span> {shipment.model}
                 </div>
               )}
               {shipment.vin && (
-                <div className="text-xs text-muted-foreground/70">
+                <div className="text-xs text-muted-foreground/70 leading-tight">
                   <span className="font-medium">VIN:</span> #{shipment.vin}
                 </div>
               )}

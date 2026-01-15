@@ -62,30 +62,33 @@ export default function BuildSchedulePage() {
         />
 
         {/* Tabs + Search + Filter + Show Finished */}
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-4 flex-wrap">
+        <div className="grid grid-cols-[1fr_1fr_1fr] gap-4 items-center">
+          {/* Spalte 1: Tabs */}
+          <div className="w-2/3 justify-self-start">
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab("build-schedule", value)}>
-              <TabsList className="h-10">
+              <TabsList className="h-10 w-full">
                 {tabs.map((tab) => (
-                  <TabsTrigger key={tab.value} value={tab.value} className="min-w-[90px]">
+                  <TabsTrigger key={tab.value} value={tab.value} className="flex-1">
                     {tab.label}
                   </TabsTrigger>
                 ))}
               </TabsList>
             </Tabs>
-            <div className="relative flex-1 min-w-[200px] max-w-lg w-full">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search..."
-                className="h-10 pl-10 rounded-lg w-full"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Filter Button - Toggle filter options visibility */}
+          {/* Spalte 2: Searchbar */}
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search..."
+              className="h-10 pl-10 rounded-lg w-full"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          {/* Spalte 3: Filter Button */}
+          <div className="w-1/2 justify-self-end flex items-center justify-end">
             <Button
               variant="outline"
               className="gap-2 h-10"
@@ -103,43 +106,53 @@ export default function BuildSchedulePage() {
 
         {/* Filter Options Row - Shown when filter is active */}
         {showFilterOptions && (
-          <div className="flex items-center justify-between gap-4">
-            {/* Ship Period Button */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                  <CalendarIcon className="h-4 w-4" />
-                  <span className="text-sm">Ship Period</span>
-                  {dateRange?.from && (
-                    <span className="text-xs">
-                      {format(dateRange.from, "MM/dd/yy")}
-                      {dateRange.to && ` - ${format(dateRange.to, "MM/dd/yy")}`}
-                    </span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  initialFocus
-                  mode="range"
-                  defaultMonth={dateRange?.from}
-                  selected={dateRange}
-                  onSelect={setDateRange}
-                  numberOfMonths={2}
-                />
-              </PopoverContent>
-            </Popover>
+          <div className="grid grid-cols-[1fr_1fr_1fr] gap-4 items-center">
+            {/* Spalte 1: Ship Period Button - aligned with tabs */}
+            <div className="w-2/3 justify-self-start">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className="gap-2 h-10 w-full"
+                  >
+                    <CalendarIcon className="h-4 w-4" />
+                    <span className="text-sm">Ship Period</span>
+                    {dateRange?.from && (
+                      <span className="text-xs">
+                        {format(dateRange.from, "MM/dd/yy")}
+                        {dateRange.to && ` - ${format(dateRange.to, "MM/dd/yy")}`}
+                      </span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateRange?.from}
+                    selected={dateRange}
+                    onSelect={setDateRange}
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
 
-            {/* Show Finished Toggle - Aligned to the right */}
-            <div className="flex items-center gap-2 ml-auto">
-              <Label htmlFor="show-finished" className="text-sm text-muted-foreground">
-                show finished
-              </Label>
-              <Switch
-                id="show-finished"
-                checked={showFinished}
-                onCheckedChange={setShowFinished}
-              />
+            {/* Spalte 2: Empty for spacing */}
+            <div></div>
+
+            {/* Spalte 3: Show Finished Toggle - Aligned to the right */}
+            <div className="w-1/2 justify-self-end flex items-center justify-end">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="show-finished" className="text-sm text-muted-foreground">
+                  show finished
+                </Label>
+                <Switch
+                  id="show-finished"
+                  checked={showFinished}
+                  onCheckedChange={setShowFinished}
+                />
+              </div>
             </div>
           </div>
         )}

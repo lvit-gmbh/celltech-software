@@ -17,12 +17,18 @@ export default function ShippingCompaniesPage() {
         <PageHeader title="Shipping Companies" />
         
         {/* Search + Button on same line */}
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-md w-full">
+        <div className="grid grid-cols-[1fr_1fr_1fr] gap-4 items-center">
+          {/* Spalte 1: Leer */}
+          <div></div>
+
+          {/* Spalte 2: Searchbar */}
+          <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground" />
             <Input placeholder="Search Shipping Companies" className="h-10 pl-10 rounded-lg border text-foreground w-full" />
           </div>
-          <div className="flex items-center gap-2 ml-auto">
+
+          {/* Spalte 3: Add Button */}
+          <div className="w-1/2 justify-self-end flex items-center justify-end">
             <Button 
               variant="outline" 
               size="icon"

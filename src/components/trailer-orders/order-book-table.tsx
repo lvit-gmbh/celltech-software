@@ -1,16 +1,17 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import type { ColumnDef } from "@tanstack/react-table"
+import type { ColumnDef, SortingState } from "@tanstack/react-table"
 import {
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
 // Using native table elements for sticky header support
 import { Button } from "@/components/ui/button"
-import { Check, Filter, Download, RefreshCw, Eye, Trash2 } from "lucide-react"
+import { Check, Filter, Download, RefreshCw, Eye, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import {
   Pagination,
   PaginationContent,
@@ -32,15 +33,36 @@ import type { Order } from "@/types"
 import { fetchOrders, fetchDealersForMapping, deleteOrder } from "@/lib/supabase/queries"
 import { OrderFilterDialog, type FilterRule, type FilterField, type FilterOperator } from "./order-filter-dialog"
 import { getSupabaseClient } from "@/lib/supabase/client"
+import { toggleSortingThreeStates, getColumnSortState } from "@/lib/table-sorting"
 
 const createColumns = (
+  sorting: SortingState,
+  setSorting: (sorting: SortingState | ((prev: SortingState) => SortingState)) => void,
   dealers: Record<number, string>,
   modelLabels: Record<string, string>,
   onDelete: (order: Order) => void
 ): ColumnDef<Order>[] => [
   {
     accessorKey: "number",
-    header: "Number",
+    header: ({ column }) => {
+      const sortState = getColumnSortState("number", sorting)
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => toggleSortingThreeStates("number", sorting, setSorting)}
+          className="h-auto p-0 font-medium hover:bg-transparent group"
+        >
+          <span className="text-xs">Number</span>
+          {sortState === "asc" ? (
+            <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+          ) : sortState === "desc" ? (
+            <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+          ) : (
+            <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+          )}
+        </Button>
+      )
+    },
     cell: ({ row }) => {
       const order = row.original
       const assetNo = order.asset_no && order.asset_no > 0 ? order.asset_no : null
@@ -61,7 +83,25 @@ const createColumns = (
   },
   {
     accessorKey: "dealer_id",
-    header: "Dealer",
+    header: ({ column }) => {
+      const sortState = getColumnSortState("dealer_id", sorting)
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => toggleSortingThreeStates("dealer_id", sorting, setSorting)}
+          className="h-auto p-0 font-medium hover:bg-transparent group"
+        >
+          Dealer
+          {sortState === "asc" ? (
+            <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+          ) : sortState === "desc" ? (
+            <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+          ) : (
+            <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+          )}
+        </Button>
+      )
+    },
     cell: ({ row }) => {
       const order = row.original
       const dealerIdValue = order.dealer_id
@@ -91,7 +131,7 @@ const createColumns = (
       }
       
       if (dealerName) {
-        return <span className="text-sm text-foreground">{dealerName}</span>
+        return <span className="text-xs text-foreground">{dealerName}</span>
       }
       
       // If no name found, return null (don't show ID)
@@ -100,7 +140,25 @@ const createColumns = (
   },
   {
     accessorKey: "shipment_id",
-    header: "Shipment",
+    header: ({ column }) => {
+      const sortState = getColumnSortState("shipment_id", sorting)
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => toggleSortingThreeStates("shipment_id", sorting, setSorting)}
+          className="h-auto p-0 font-medium hover:bg-transparent group"
+        >
+          Shipment
+          {sortState === "asc" ? (
+            <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+          ) : sortState === "desc" ? (
+            <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+          ) : (
+            <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+          )}
+        </Button>
+      )
+    },
     cell: ({ row }) => {
       const shipmentId = row.getValue("shipment_id") as string | null
       if (!shipmentId) {
@@ -108,7 +166,7 @@ const createColumns = (
       }
       return (
         <span 
-          className="inline-flex items-center justify-center rounded-full text-sm font-medium text-white shadow-sm [text-shadow:0_0_8px_rgba(255,255,255,0.3)]"
+          className="inline-flex items-center justify-center rounded-full text-xs font-medium text-white shadow-sm [text-shadow:0_0_8px_rgba(255,255,255,0.3)]"
           style={{ backgroundColor: '#336699', padding: '0px 8px' }}
         >
           {shipmentId}
@@ -118,18 +176,54 @@ const createColumns = (
   },
   {
     accessorKey: "model",
-    header: "Model",
+    header: ({ column }) => {
+      const sortState = getColumnSortState("model", sorting)
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => toggleSortingThreeStates("model", sorting, setSorting)}
+          className="h-auto p-0 font-medium hover:bg-transparent group"
+        >
+          Model
+          {sortState === "asc" ? (
+            <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+          ) : sortState === "desc" ? (
+            <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+          ) : (
+            <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+          )}
+        </Button>
+      )
+    },
     cell: ({ row }) => {
       const modelValue = row.getValue("model") as string
       if (!modelValue) return null
       // Look up model label from modelLabels map, fallback to model value if not found
       const modelLabel = modelLabels[String(modelValue)] || modelValue
-      return <span className="text-sm text-foreground">{modelLabel}</span>
+      return <span className="text-xs text-foreground">{modelLabel}</span>
     },
   },
   {
     accessorKey: "order_date",
-    header: "Order date",
+    header: ({ column }) => {
+      const sortState = getColumnSortState("order_date", sorting)
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => toggleSortingThreeStates("order_date", sorting, setSorting)}
+          className="h-auto p-0 font-medium hover:bg-transparent group"
+        >
+          Order date
+          {sortState === "asc" ? (
+            <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+          ) : sortState === "desc" ? (
+            <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+          ) : (
+            <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+          )}
+        </Button>
+      )
+    },
     cell: ({ row }) => {
       const date = row.getValue("order_date") as string | null
       if (!date) return null
@@ -142,7 +236,25 @@ const createColumns = (
   },
   {
     accessorKey: "fin_date",
-    header: "Fin date",
+    header: ({ column }) => {
+      const sortState = getColumnSortState("fin_date", sorting)
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => toggleSortingThreeStates("fin_date", sorting, setSorting)}
+          className="h-auto p-0 font-medium hover:bg-transparent group"
+        >
+          Fin date
+          {sortState === "asc" ? (
+            <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+          ) : sortState === "desc" ? (
+            <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+          ) : (
+            <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+          )}
+        </Button>
+      )
+    },
     cell: ({ row }) => {
       const date = row.getValue("fin_date") as string | null
       if (!date) return null
@@ -155,7 +267,25 @@ const createColumns = (
   },
   {
     accessorKey: "options",
-    header: "# Options",
+    header: ({ column }) => {
+      const sortState = getColumnSortState("options", sorting)
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => toggleSortingThreeStates("options", sorting, setSorting)}
+          className="h-auto p-0 font-medium hover:bg-transparent group"
+        >
+          # Options
+          {sortState === "asc" ? (
+            <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+          ) : sortState === "desc" ? (
+            <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+          ) : (
+            <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+          )}
+        </Button>
+      )
+    },
     cell: ({ row }) => {
       const order = row.original
       // Calculate options count from available fields
@@ -179,11 +309,29 @@ const createColumns = (
   },
   {
     accessorKey: "price",
-    header: "Price",
+    header: ({ column }) => {
+      const sortState = getColumnSortState("price", sorting)
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => toggleSortingThreeStates("price", sorting, setSorting)}
+          className="h-auto p-0 font-medium hover:bg-transparent group"
+        >
+          Price
+          {sortState === "asc" ? (
+            <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+          ) : sortState === "desc" ? (
+            <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+          ) : (
+            <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+          )}
+        </Button>
+      )
+    },
     cell: ({ row }) => {
       const price = row.getValue("price") as number
       return (
-        <span className="text-sm font-medium text-foreground">
+        <span className="text-xs font-medium text-foreground">
           {new Intl.NumberFormat("en-US", {
             style: "currency",
             currency: "USD",
@@ -271,6 +419,7 @@ export function OrderBookTable({ brightviewFilter, searchQuery, showClosed }: Or
     pageIndex: 0,
     pageSize: 25,
   })
+  const [sorting, setSorting] = useState<SortingState>([])
 
   const handleDelete = async (order: Order) => {
     if (!confirm(`Are you sure you want to delete order #${order.asset_no || order.po || order.id}?`)) {
@@ -545,18 +694,21 @@ export function OrderBookTable({ brightviewFilter, searchQuery, showClosed }: Or
   }, [brightviewFilter, searchQuery, showClosed, activeFilters, refreshKey])
 
   const columns = useMemo(() => {
-    const cols = createColumns(dealers, modelLabels, handleDelete)
+    const cols = createColumns(sorting, setSorting, dealers, modelLabels, handleDelete)
     return cols
-  }, [dealers, modelLabels])
+  }, [sorting, setSorting, dealers, modelLabels, handleDelete])
 
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     onPaginationChange: setPagination,
+    onSortingChange: setSorting,
     state: {
       pagination,
+      sorting,
     },
     // Force re-render when columns change
     manualPagination: false,
@@ -579,7 +731,7 @@ export function OrderBookTable({ brightviewFilter, searchQuery, showClosed }: Or
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="rounded-2xl border shadow-none overflow-hidden">
+        <div className="rounded-lg border shadow-none overflow-hidden">
           <div className="p-4 space-y-2">
             {[...Array(5)].map((_, i) => (
               <Skeleton key={i} className="h-12 w-full" />
@@ -592,7 +744,7 @@ export function OrderBookTable({ brightviewFilter, searchQuery, showClosed }: Or
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex-1 min-h-0 overflow-hidden rounded-2xl border shadow-none flex flex-col">
+      <div className="flex-1 min-h-0 overflow-hidden rounded-lg border shadow-none flex flex-col">
         <div className="flex-1 min-h-0 overflow-auto">
           <table className="w-full caption-bottom text-sm">
             <thead className="sticky top-0 z-20 bg-background [&_tr]:border-b">
@@ -601,7 +753,7 @@ export function OrderBookTable({ brightviewFilter, searchQuery, showClosed }: Or
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b"
+                      className="h-9 px-4 py-1.5 text-left align-middle font-medium text-muted-foreground bg-background border-b"
                     >
                       {header.isPlaceholder
                         ? null
@@ -619,7 +771,7 @@ export function OrderBookTable({ brightviewFilter, searchQuery, showClosed }: Or
                 table.getRowModel().rows.map((row) => (
                   <tr key={row.id} className="group border-b transition-colors hover:bg-muted/50">
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="py-3 px-4 align-middle">
+                      <td key={cell.id} className="py-1.5 px-4 align-middle">
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()

@@ -8,12 +8,16 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Search, Printer, ChevronDown, ChevronRight } from "lucide-react"
+import { Separator } from "@/components/ui/separator"
+import { Search, Printer, ChevronDown, ChevronRight, ArrowRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { CalendarIcon } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import { format } from "date-fns"
 import type { DateRange } from "react-day-picker"
 import { fetchDashboardData, fetchDealers, updateOrderVIN } from "@/lib/supabase/queries"
@@ -55,6 +59,10 @@ export default function DashboardPage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>()
   const [editingVIN, setEditingVIN] = useState<number | null>(null)
   const [vinValue, setVinValue] = useState<string>("")
+  const [exportDialogOpen, setExportDialogOpen] = useState(false)
+  const [exportTitle, setExportTitle] = useState<string>("")
+  const [sortColumn, setSortColumn] = useState<string | null>(null)
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc" | null>(null)
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
@@ -128,6 +136,12 @@ export default function DashboardPage() {
     loadData()
   }, []) // Load once, don't reload when filter changes
 
+  // Reset sorting when primary tab changes
+  useEffect(() => {
+    setSortColumn(null)
+    setSortDirection(null)
+  }, [primaryTab])
+
   // Memoized status counts - apply brightview filter for counts
   const statusCounts = useMemo(() => {
     const counts: Record<OrderStatus, number> = {
@@ -168,6 +182,71 @@ export default function DashboardPage() {
     { value: "shipped" as OrderStatus, label: "Shipped", count: statusCounts.shipped },
   ], [statusCounts])
 
+  // Handle column sorting
+  const handleSort = useCallback((column: string) => {
+    if (sortColumn === column) {
+      if (sortDirection === "asc") {
+        setSortDirection("desc")
+      } else if (sortDirection === "desc") {
+        setSortColumn(null)
+        setSortDirection(null)
+      } else {
+        setSortDirection("asc")
+      }
+    } else {
+      setSortColumn(column)
+      setSortDirection("asc")
+    }
+  }, [sortColumn, sortDirection])
+
+  // Sort function
+  const sortData = useCallback((data: OrderWithStatus[], column: string, direction: "asc" | "desc") => {
+    const sorted = [...data].sort((a, b) => {
+      let aVal: any
+      let bVal: any
+
+      switch (column) {
+        case "dealer":
+          aVal = dealers[a.dealer_id] || ""
+          bVal = dealers[b.dealer_id] || ""
+          break
+        case "asset":
+          aVal = a.asset_no ? String(a.asset_no) : a.po || ""
+          bVal = b.asset_no ? String(b.asset_no) : b.po || ""
+          break
+        case "model":
+          aVal = modelLabels[String(a.model)] || a.model || ""
+          bVal = modelLabels[String(b.model)] || b.model || ""
+          break
+        case "vin":
+          aVal = a.vin_num || ""
+          bVal = b.vin_num || ""
+          break
+        case "shipDate":
+          aVal = a.ship_date ? new Date(a.ship_date).getTime() : 0
+          bVal = b.ship_date ? new Date(b.ship_date).getTime() : 0
+          break
+        case "finDate":
+          aVal = a.fin_date ? new Date(a.fin_date).getTime() : 0
+          bVal = b.fin_date ? new Date(b.fin_date).getTime() : 0
+          break
+        case "status":
+          aVal = getStatusLabel(a.computedStatus)
+          bVal = getStatusLabel(b.computedStatus)
+          break
+        default:
+          return 0
+      }
+
+      // Compare values
+      if (aVal < bVal) return direction === "asc" ? -1 : 1
+      if (aVal > bVal) return direction === "asc" ? 1 : -1
+      return 0
+    })
+
+    return sorted
+  }, [dealers, modelLabels])
+
   // Memoized filtered data by status and search
   const filteredData = useMemo(() => {
     let filtered = allOrders.filter((order) => order.computedStatus === primaryTab)
@@ -203,8 +282,13 @@ export default function DashboardPage() {
       })
     }
 
+    // Apply sorting
+    if (sortColumn && sortDirection) {
+      filtered = sortData(filtered, sortColumn, sortDirection)
+    }
+
     return filtered
-  }, [allOrders, primaryTab, debouncedSearchQuery, dealers, dateRange])
+  }, [allOrders, primaryTab, debouncedSearchQuery, dealers, dateRange, sortColumn, sortDirection, sortData, secondaryTab])
 
   // Group data for Special tab
   const groupedSpecialData = useMemo(() => {
@@ -235,12 +319,12 @@ export default function DashboardPage() {
 
   // Render model badge
   const renderModel = (model: string | null | undefined) => {
-    if (!model) return "-"
+    if (!model) return <span className="text-xs text-foreground">-</span>
     const label = modelLabels[String(model)] || model
     if (isGreenModel(label)) {
       return <Badge className="bg-emerald-600 text-white">{label}</Badge>
     }
-    return label
+    return <span className="text-xs text-foreground">{label}</span>
   }
 
   // Handle VIN editing
@@ -287,7 +371,7 @@ export default function DashboardPage() {
             }
           }}
           placeholder="Enter value"
-          className="h-8 text-sm"
+          className="h-8 text-xs"
           autoFocus
           onClick={(e) => e.stopPropagation()}
         />
@@ -295,7 +379,7 @@ export default function DashboardPage() {
     }
     return (
       <span
-        className="text-muted-foreground cursor-pointer hover:bg-muted/30 rounded px-2 py-1 block"
+        className="text-xs text-foreground cursor-pointer hover:bg-muted/30 rounded px-2 py-1 block"
         onClick={() => handleVINClick(order.id, order.vin_num)}
         title="Click to edit VIN"
       >
@@ -307,7 +391,7 @@ export default function DashboardPage() {
   // Render status select
   const renderStatusSelect = () => (
     <Select>
-      <SelectTrigger className="h-8 w-[140px] text-muted-foreground">
+      <SelectTrigger className="h-auto w-full border-0 bg-transparent px-0 py-0 text-xs text-muted-foreground hover:text-foreground cursor-pointer focus:ring-0 focus:ring-offset-0 shadow-none rounded-none [&>svg]:hidden">
         <SelectValue placeholder="select new status" />
       </SelectTrigger>
       <SelectContent>
@@ -319,6 +403,56 @@ export default function DashboardPage() {
         <SelectItem value="shipped">Shipped</SelectItem>
       </SelectContent>
     </Select>
+  )
+
+  // Render sortable column header
+  const renderSortableHeader = useCallback((column: string, label: string) => {
+    const isSorted = sortColumn === column
+    const isAsc = sortDirection === "asc"
+    const isDesc = sortDirection === "desc"
+
+    return (
+      <th 
+        className="h-9 px-4 py-1.5 text-left align-middle font-medium text-muted-foreground bg-background border-b cursor-pointer hover:bg-muted/50 transition-colors"
+        onClick={() => handleSort(column)}
+      >
+        <div className="flex items-center gap-2 group">
+          <span>{label}</span>
+          {isSorted && isAsc ? (
+            <ArrowUp className="h-3 w-3 opacity-100" />
+          ) : isSorted && isDesc ? (
+            <ArrowDown className="h-3 w-3 opacity-100" />
+          ) : (
+            <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+          )}
+        </div>
+      </th>
+    )
+  }, [sortColumn, sortDirection, handleSort])
+
+  // Render action button with tooltip
+  const renderActionButton = () => (
+    <div className="opacity-0 group-hover:opacity-100 transition-all duration-200">
+      <TooltipProvider delayDuration={300}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation()
+                // TODO: Implement increment status logic
+              }}
+            >
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Increment trailer's status</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </div>
   )
 
   // Render table based on current tab
@@ -349,26 +483,31 @@ export default function DashboardPage() {
         <table className="w-full caption-bottom text-sm">
           <thead className="sticky top-0 z-20 bg-background [&_tr]:border-b">
             <tr className="border-b">
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">Dealer</th>
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">Asset/Order</th>
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">BV</th>
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">Model</th>
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">VIN</th>
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">Ship Date</th>
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">Move to Status</th>
+              {renderSortableHeader("dealer", "Dealer")}
+              {renderSortableHeader("asset", "Asset/Order")}
+              <th className="h-9 px-4 py-1.5 text-left align-middle font-medium text-muted-foreground bg-background border-b">BV</th>
+              {renderSortableHeader("model", "Model")}
+              {renderSortableHeader("vin", "VIN")}
+              {renderSortableHeader("shipDate", "Ship Date")}
+              <th className="h-9 px-4 py-1.5 text-left align-middle font-medium text-muted-foreground bg-background border-b border-l">Move to Status</th>
             </tr>
           </thead>
           <tbody className="[&_tr:last-child]:border-0">
             {filteredData.length > 0 ? (
               filteredData.map((order) => (
-                <tr key={order.id} className="border-b transition-colors hover:bg-muted/50">
-                  <td className="py-3 px-4 align-middle font-medium">{dealers[order.dealer_id] || "-"}</td>
-                  <td className="py-3 px-4 align-middle">{order.asset_no ? `#${order.asset_no}` : order.po ? `PO ${order.po}` : "-"}</td>
-                  <td className="py-3 px-4 align-middle">{order.brightview ? "BV" : ""}</td>
-                  <td className="py-3 px-4 align-middle">{renderModel(order.model)}</td>
-                  <td className="py-3 px-4 align-middle">{renderEditableVIN(order)}</td>
-                  <td className="py-3 px-4 align-middle">-</td>
-                  <td className="py-3 px-4 align-middle">{renderStatusSelect()}</td>
+                <tr key={order.id} className="group border-b transition-colors hover:bg-muted/50">
+                  <td className="py-1.5 px-4 align-middle"><span className="text-xs text-foreground">{dealers[order.dealer_id] || "-"}</span></td>
+                  <td className="py-1.5 px-4 align-middle"><span className="text-xs text-foreground">{order.asset_no ? `#${order.asset_no}` : order.po ? `PO ${order.po}` : "-"}</span></td>
+                  <td className="py-1.5 px-4 align-middle"><span className="text-xs text-foreground">{order.brightview ? "BV" : ""}</span></td>
+                  <td className="py-1.5 px-4 align-middle">{renderModel(order.model)}</td>
+                  <td className="py-1.5 px-4 align-middle">{renderEditableVIN(order)}</td>
+                  <td className="py-1.5 px-4 align-middle"><span className="text-xs text-foreground">-</span></td>
+                  <td className="py-1.5 px-4 align-middle border-l">
+                    <div className="flex items-center gap-2">
+                      {renderStatusSelect()}
+                      {renderActionButton()}
+                    </div>
+                  </td>
                 </tr>
               ))
             ) : (
@@ -388,12 +527,12 @@ export default function DashboardPage() {
         <table className="w-full caption-bottom text-sm">
           <thead className="sticky top-0 z-20 bg-background [&_tr]:border-b">
             <tr className="border-b">
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">Status</th>
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">Dealer ID</th>
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">Model</th>
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">VIN</th>
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">Ship Date</th>
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">Move to Status</th>
+              <th className="h-9 px-4 py-1.5 text-left align-middle font-medium text-muted-foreground bg-background border-b">Status</th>
+              <th className="h-9 px-4 py-1.5 text-left align-middle font-medium text-muted-foreground bg-background border-b">Dealer ID</th>
+              <th className="h-9 px-4 py-1.5 text-left align-middle font-medium text-muted-foreground bg-background border-b">Model</th>
+              <th className="h-9 px-4 py-1.5 text-left align-middle font-medium text-muted-foreground bg-background border-b">VIN</th>
+              <th className="h-9 px-4 py-1.5 text-left align-middle font-medium text-muted-foreground bg-background border-b">Ship Date</th>
+              <th className="h-9 px-4 py-1.5 text-left align-middle font-medium text-muted-foreground bg-background border-b border-l">Move to Status</th>
             </tr>
           </thead>
           <tbody className="[&_tr:last-child]:border-0">
@@ -406,22 +545,27 @@ export default function DashboardPage() {
                       className="cursor-pointer hover:bg-muted/50 bg-muted/20 border-b transition-colors"
                       onClick={() => toggleGroup(groupKey)}
                     >
-                      <td colSpan={6} className="py-3 px-4 align-middle">
+                      <td colSpan={6} className="py-1.5 px-4 align-middle">
                         <div className="flex items-center gap-2">
                           {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                           <Badge className={getStatusColor("special")}>{groupKey}</Badge>
-                          <span className="text-muted-foreground">({orders.length})</span>
+                          <span className="text-xs text-muted-foreground">({orders.length})</span>
                         </div>
                       </td>
                     </tr>
                     {isExpanded && orders.map((order) => (
-                      <tr key={order.id} className="border-b transition-colors hover:bg-muted/50">
-                        <td className="py-3 px-4 align-middle"></td>
-                        <td className="py-3 px-4 align-middle font-medium">{dealers[order.dealer_id] || "STOCK"}</td>
-                        <td className="py-3 px-4 align-middle">{renderModel(order.model)}</td>
-                        <td className="py-3 px-4 align-middle">{renderEditableVIN(order)}</td>
-                        <td className="py-3 px-4 align-middle">-</td>
-                        <td className="py-3 px-4 align-middle">{renderStatusSelect()}</td>
+                      <tr key={order.id} className="group border-b transition-colors hover:bg-muted/50">
+                        <td className="py-1.5 px-4 align-middle"></td>
+                        <td className="py-1.5 px-4 align-middle"><span className="text-xs text-foreground">{dealers[order.dealer_id] || "STOCK"}</span></td>
+                        <td className="py-1.5 px-4 align-middle">{renderModel(order.model)}</td>
+                        <td className="py-1.5 px-4 align-middle">{renderEditableVIN(order)}</td>
+                        <td className="py-1.5 px-4 align-middle"><span className="text-xs text-foreground">-</span></td>
+                        <td className="py-1.5 px-4 align-middle border-l">
+                          <div className="flex items-center gap-2">
+                            {renderStatusSelect()}
+                            {renderActionButton()}
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </React.Fragment>
@@ -443,20 +587,20 @@ export default function DashboardPage() {
         <table className="w-full caption-bottom text-sm">
           <thead className="sticky top-0 z-20 bg-background [&_tr]:border-b">
             <tr className="border-b">
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">Dealer</th>
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">Model</th>
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">VIN</th>
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">Ship Date</th>
+              {renderSortableHeader("dealer", "Dealer")}
+              {renderSortableHeader("model", "Model")}
+              {renderSortableHeader("vin", "VIN")}
+              {renderSortableHeader("shipDate", "Ship Date")}
             </tr>
           </thead>
           <tbody className="[&_tr:last-child]:border-0">
             {filteredData.length > 0 ? (
               filteredData.map((order) => (
                 <tr key={order.id} className="border-b transition-colors hover:bg-muted/50">
-                  <td className="py-3 px-4 align-middle font-medium">{dealers[order.dealer_id] || "-"}</td>
-                  <td className="py-3 px-4 align-middle">{renderModel(order.model)}</td>
-                  <td className="py-3 px-4 align-middle">{renderEditableVIN(order)}</td>
-                  <td className="py-3 px-4 align-middle">-</td>
+                  <td className="py-1.5 px-4 align-middle"><span className="text-xs text-foreground">{dealers[order.dealer_id] || "-"}</span></td>
+                  <td className="py-1.5 px-4 align-middle">{renderModel(order.model)}</td>
+                  <td className="py-1.5 px-4 align-middle">{renderEditableVIN(order)}</td>
+                  <td className="py-1.5 px-4 align-middle"><span className="text-xs text-foreground">-</span></td>
                 </tr>
               ))
             ) : (
@@ -475,22 +619,22 @@ export default function DashboardPage() {
         <table className="w-full caption-bottom text-sm">
           <thead className="sticky top-0 z-20 bg-background [&_tr]:border-b">
             <tr className="border-b">
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">Dealer</th>
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">Asset/Order</th>
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">Model</th>
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">VIN</th>
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">Shipped on</th>
+              {renderSortableHeader("dealer", "Dealer")}
+              {renderSortableHeader("asset", "Asset/Order")}
+              {renderSortableHeader("model", "Model")}
+              {renderSortableHeader("vin", "VIN")}
+              {renderSortableHeader("finDate", "Shipped on")}
             </tr>
           </thead>
           <tbody className="[&_tr:last-child]:border-0">
             {filteredData.length > 0 ? (
               filteredData.map((order) => (
                 <tr key={order.id} className="border-b transition-colors hover:bg-muted/50">
-                  <td className="py-3 px-4 align-middle font-medium">{dealers[order.dealer_id] || "-"}</td>
-                  <td className="py-3 px-4 align-middle">{order.asset_no ? `#${order.asset_no}` : order.po ? `PO ${order.po}` : "-"}</td>
-                  <td className="py-3 px-4 align-middle">{renderModel(order.model)}</td>
-                  <td className="py-3 px-4 align-middle">{renderEditableVIN(order)}</td>
-                  <td className="py-3 px-4 align-middle">{order.fin_date ? new Date(order.fin_date).toLocaleDateString() : "-"}</td>
+                  <td className="py-1.5 px-4 align-middle"><span className="text-xs text-foreground">{dealers[order.dealer_id] || "-"}</span></td>
+                  <td className="py-1.5 px-4 align-middle"><span className="text-xs text-foreground">{order.asset_no ? `#${order.asset_no}` : order.po ? `PO ${order.po}` : "-"}</span></td>
+                  <td className="py-1.5 px-4 align-middle">{renderModel(order.model)}</td>
+                  <td className="py-1.5 px-4 align-middle">{renderEditableVIN(order)}</td>
+                  <td className="py-1.5 px-4 align-middle"><span className="text-sm text-foreground">{order.fin_date ? new Date(order.fin_date).toLocaleDateString() : "-"}</span></td>
                 </tr>
               ))
             ) : (
@@ -508,13 +652,13 @@ export default function DashboardPage() {
       <table className="w-full caption-bottom text-sm">
         <thead className="sticky top-0 z-20 bg-background [&_tr]:border-b">
           <tr className="border-b">
-            <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">Status</th>
-            <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">Dealer</th>
-            <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">Asset/Order</th>
-            <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">Model</th>
-            <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">VIN</th>
-            <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">Ship Date</th>
-            <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b">Move to Status</th>
+            {renderSortableHeader("status", "Status")}
+            {renderSortableHeader("dealer", "Dealer")}
+            {renderSortableHeader("asset", "Asset/Order")}
+            {renderSortableHeader("model", "Model")}
+            {renderSortableHeader("vin", "VIN")}
+            {renderSortableHeader("shipDate", "Ship Date")}
+            <th className="h-9 px-4 py-1.5 text-left align-middle font-medium text-muted-foreground bg-background border-b border-l">Move to Status</th>
           </tr>
         </thead>
         <tbody className="[&_tr:last-child]:border-0">
@@ -547,16 +691,21 @@ export default function DashboardPage() {
                 : getStatusColor(order.computedStatus)
               
               return (
-                <tr key={order.id} className="border-b transition-colors hover:bg-muted/50">
-                  <td className="py-3 px-4 align-middle">
+                <tr key={order.id} className="group border-b transition-colors hover:bg-muted/50">
+                  <td className="py-1.5 px-4 align-middle">
                     <Badge className={statusColor}>{subStatus}</Badge>
                   </td>
-                  <td className="py-3 px-4 align-middle font-medium">{dealers[order.dealer_id] || "-"}</td>
-                  <td className="py-3 px-4 align-middle">{order.asset_no ? `#${order.asset_no}` : order.po ? `PO ${order.po}` : "-"}</td>
-                  <td className="py-3 px-4 align-middle">{renderModel(order.model)}</td>
-                  <td className="py-3 px-4 align-middle">{renderEditableVIN(order)}</td>
-                  <td className="py-3 px-4 align-middle">-</td>
-                  <td className="py-3 px-4 align-middle">{renderStatusSelect()}</td>
+                  <td className="py-1.5 px-4 align-middle"><span className="text-xs text-foreground">{dealers[order.dealer_id] || "-"}</span></td>
+                  <td className="py-1.5 px-4 align-middle"><span className="text-xs text-foreground">{order.asset_no ? `#${order.asset_no}` : order.po ? `PO ${order.po}` : "-"}</span></td>
+                  <td className="py-1.5 px-4 align-middle">{renderModel(order.model)}</td>
+                  <td className="py-1.5 px-4 align-middle">{renderEditableVIN(order)}</td>
+                  <td className="py-1.5 px-4 align-middle"><span className="text-xs text-foreground">-</span></td>
+                  <td className="py-1.5 px-4 align-middle border-l">
+                    <div className="flex items-center gap-2">
+                      {renderStatusSelect()}
+                      {renderActionButton()}
+                    </div>
+                  </td>
                 </tr>
               )
             })
@@ -575,44 +724,74 @@ export default function DashboardPage() {
       <PageHeader
         title="Dashboard"
         actions={
-          <Button variant="outline" size="icon">
-            <Printer className="h-4 w-4" />
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={() => setExportDialogOpen(true)}
+                >
+                  <Printer className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Export Dashboard</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         }
       />
 
-      {/* Primary Status Tabs */}
-      <Tabs value={primaryTab} onValueChange={(value) => setActiveTab("dashboard-primary", value)}>
-        <TabsList className="h-auto flex-wrap gap-1 bg-transparent p-0">
-          {primaryTabs.map((tab) => (
-            <TabsTrigger 
-              key={tab.value} 
-              value={tab.value}
-              className="min-w-0 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+      {/* Primary Status Links */}
+      <div className="flex flex-wrap gap-4 items-center">
+        {primaryTabs.map((tab) => {
+          const isActive = primaryTab === tab.value
+          return (
+            <button
+              key={tab.value}
+              onClick={() => setActiveTab("dashboard-primary", tab.value)}
+              className={`flex items-center gap-2 transition-colors ${
+                isActive
+                  ? "font-bold text-foreground"
+                  : "font-normal text-muted-foreground hover:text-foreground"
+              }`}
             >
-              {tab.label}
-              {tab.value !== "shipped" && (
-                <Badge variant="secondary" className="ml-2 h-5 min-w-[20px] px-1.5 text-xs font-medium bg-muted">
-                  {tab.count}
-                </Badge>
-              )}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+              <span>
+                {tab.label}
+                {tab.value !== "shipped" && (
+                  <span
+                    className={`${
+                      isActive ? "font-bold text-foreground" : "font-medium text-muted-foreground"
+                    }`}
+                  >
+                    {" "}({tab.count})
+                  </span>
+                )}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+      <Separator className="w-full" />
 
       {/* Secondary Filter Tabs + Search + Date Range (for Shipped) */}
-      <div className="flex items-center gap-4 flex-wrap">
-        <Tabs value={secondaryTab} onValueChange={(value) => setActiveTab("dashboard-secondary", value)}>
-          <TabsList className="h-10">
-            {secondaryTabs.map((tab) => (
-              <TabsTrigger key={tab.value} value={tab.value} className="min-w-[90px]">
-                {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-        <div className="relative flex-1 max-w-md w-full">
+      <div className="grid grid-cols-[1fr_1fr_1fr] gap-4 items-center">
+        {/* Spalte 1: Secondary Tabs */}
+        <div className="w-2/3 justify-self-start">
+          <Tabs value={secondaryTab} onValueChange={(value) => setActiveTab("dashboard-secondary", value)}>
+            <TabsList className="h-10 w-full">
+              {secondaryTabs.map((tab) => (
+                <TabsTrigger key={tab.value} value={tab.value} className="flex-1">
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
+
+        {/* Spalte 2: Searchbar */}
+        <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search Orders"
@@ -621,44 +800,91 @@ export default function DashboardPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        
-        {/* Date Range for Shipped tab */}
-        {primaryTab === "shipped" && (
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                <CalendarIcon className="h-4 w-4" />
-                <span className="text-sm">Ship Period</span>
-                {dateRange?.from && (
-                  <span className="text-xs">
-                    {format(dateRange.from, "MM/dd/yy")}
-                    {dateRange.to && ` - ${format(dateRange.to, "MM/dd/yy")}`}
-                  </span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                initialFocus
-                mode="range"
-                defaultMonth={dateRange?.from}
-                selected={dateRange}
-                onSelect={setDateRange}
-                numberOfMonths={2}
-              />
-            </PopoverContent>
-          </Popover>
-        )}
+
+        {/* Spalte 3: Date Range for Shipped tab */}
+        <div className="w-1/2 justify-self-end flex items-center justify-end">
+          {primaryTab === "shipped" && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <CalendarIcon className="h-4 w-4" />
+                  <span className="text-sm">Ship Period</span>
+                  {dateRange?.from && (
+                    <span className="text-xs">
+                      {format(dateRange.from, "MM/dd/yy")}
+                      {dateRange.to && ` - ${format(dateRange.to, "MM/dd/yy")}`}
+                    </span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange?.from}
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
       </div>
 
       {/* Dashboard Table - Scrollable */}
       <div className="flex h-full flex-col">
-        <div className="flex-1 overflow-hidden rounded-2xl border shadow-none">
+        <div className="flex-1 overflow-hidden rounded-lg border shadow-none">
           <div className="h-full max-h-[calc(100vh-320px)] overflow-auto">
             {renderTable()}
           </div>
         </div>
       </div>
+
+      {/* Export Dialog */}
+      <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Dashboard - Export</DialogTitle>
+            <DialogDescription>
+              Please enter a title that should be displayed on the dashboard export.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="export-title">Title</Label>
+              <Input
+                id="export-title"
+                placeholder="Enter export title"
+                value={exportTitle}
+                onChange={(e) => setExportTitle(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setExportDialogOpen(false)
+                  setExportTitle("")
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  // TODO: Implement export functionality
+                  console.log("Exporting with title:", exportTitle)
+                  setExportDialogOpen(false)
+                  setExportTitle("")
+                }}
+              >
+                <Printer className="mr-2 h-4 w-4" />
+                Print
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

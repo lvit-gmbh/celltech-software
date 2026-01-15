@@ -42,8 +42,9 @@ export default function SettingsPage() {
       />
 
       {/* Tabs + Search + Add */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+      <div className="grid grid-cols-[1fr_1fr_1fr] gap-4 items-center">
+        {/* Spalte 1: Tabs (nur wenn viewMode === "models") */}
+        <div className="w-2/3 justify-self-start">
           {viewMode === "models" && (
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab("settings", value)}>
               <TabsList className="h-10">
@@ -55,24 +56,30 @@ export default function SettingsPage() {
               </TabsList>
             </Tabs>
           )}
-          <div className="relative flex-1 max-w-md w-full">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground" />
-            <Input placeholder="Search..." className="h-10 pl-10 rounded-lg border text-foreground w-full" />
-          </div>
         </div>
-        {viewMode === "models" ? (
-          <ModelDialog>
-            <Button variant="outline" size="icon">
-              <Plus className="h-4 w-4" />
-            </Button>
-          </ModelDialog>
-        ) : (
-          <FrontendOptionDialog>
-            <Button variant="outline" size="icon">
-              <Plus className="h-4 w-4" />
-            </Button>
-          </FrontendOptionDialog>
-        )}
+
+        {/* Spalte 2: Searchbar */}
+        <div className="relative w-full">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground" />
+          <Input placeholder="Search..." className="h-10 pl-10 rounded-lg border text-foreground w-full" />
+        </div>
+
+        {/* Spalte 3: Add Button */}
+        <div className="w-1/2 justify-self-end flex items-center justify-end">
+          {viewMode === "models" ? (
+            <ModelDialog>
+              <Button variant="outline" size="icon">
+                <Plus className="h-4 w-4" />
+              </Button>
+            </ModelDialog>
+          ) : (
+            <FrontendOptionDialog>
+              <Button variant="outline" size="icon">
+                <Plus className="h-4 w-4" />
+              </Button>
+            </FrontendOptionDialog>
+          )}
+        </div>
       </div>
 
       {viewMode === "models" ? (

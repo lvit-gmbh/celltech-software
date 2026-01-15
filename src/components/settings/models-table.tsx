@@ -4,13 +4,14 @@ import { useState, useEffect, useMemo } from "react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ChevronRight } from "lucide-react"
+import { ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import type { Model } from "@/types"
 import { fetchModels } from "@/lib/supabase/queries"
 import { getSupabaseClient } from "@/lib/supabase/client"
 
 interface SizeGroup {
   size: string
+  sizeLabel: string
   count: number
   models: Model[]
 }
@@ -38,6 +39,11 @@ export function ModelsTable({ activeTab = "all" }: ModelsTableProps) {
   const [allModels, setAllModels] = useState<Model[]>([])
   const [loading, setLoading] = useState(true)
   const [modelLabels, setModelLabels] = useState<Record<string, string>>({})
+  const [sizeLabels, setSizeLabels] = useState<Record<string, string>>({})
+  const [sortConfig, setSortConfig] = useState<{
+    key: string
+    direction: "asc" | "desc"
+  } | null>(null)
 
   useEffect(() => {
     async function loadData() {
@@ -66,6 +72,24 @@ export function ModelsTable({ activeTab = "all" }: ModelsTableProps) {
         } catch (e) {
           console.warn("Could not load model labels:", e)
         }
+
+        // Load size labels from div_frontend_options
+        try {
+          const { data: sizeOptions, error: sizeError } = await supabase
+            .from("div_frontend_options")
+            .select("value, label")
+            .eq("type", "Size")
+
+          if (!sizeError && sizeOptions) {
+            const sizeLabelsMap: Record<string, string> = {}
+            sizeOptions.forEach((opt: any) => {
+              sizeLabelsMap[String(opt.value)] = opt.label || ""
+            })
+            setSizeLabels(sizeLabelsMap)
+          }
+        } catch (e) {
+          console.warn("Could not load size labels:", e)
+        }
       } catch (error) {
         console.error("Error loading models:", error)
         setAllModels([])
@@ -90,7 +114,7 @@ export function ModelsTable({ activeTab = "all" }: ModelsTableProps) {
   }, [allModels, activeTab])
 
   // Group filtered models by size
-  const data = useMemo(() => {
+  const groupedData = useMemo(() => {
     if (!filteredModels || filteredModels.length === 0) {
       return []
     }
@@ -104,16 +128,95 @@ export function ModelsTable({ activeTab = "all" }: ModelsTableProps) {
       return acc
     }, {})
 
-    return Object.entries(grouped).map(([size, models]) => ({
-      size,
-      count: models.length,
-      models: models as Model[],
-    }))
-  }, [filteredModels])
+    return Object.entries(grouped).map(([size, models]) => {
+      // Get label from sizeLabels, fallback to size value or "Unknown"
+      const sizeLabel = sizeLabels[size] || size || "Unknown"
+      return {
+        size,
+        sizeLabel,
+        count: models.length,
+        models: models as Model[],
+      }
+    })
+  }, [filteredModels, sizeLabels])
+
+  // Sort models within each group
+  const data = useMemo(() => {
+    if (!sortConfig) return groupedData
+    
+    return groupedData.map((group) => {
+      const sortedModels = [...group.models].sort((a, b) => {
+        let aValue: string | null = null
+        let bValue: string | null = null
+        
+        switch (sortConfig.key) {
+          case "model":
+            aValue = modelLabels[String(a.model)] || a.model || ""
+            bValue = modelLabels[String(b.model)] || b.model || ""
+            break
+          case "rearDoor":
+            aValue = a.rearDoor || ""
+            bValue = b.rearDoor || ""
+            break
+          case "axleRating":
+            aValue = a.axleRating || ""
+            bValue = b.axleRating || ""
+            break
+          case "axleType":
+            aValue = a.axleType || ""
+            bValue = b.axleType || ""
+            break
+          case "tiresWheels":
+            aValue = a.tiresWheels || ""
+            bValue = b.tiresWheels || ""
+            break
+          case "brightView":
+            aValue = a.brightView ? "Yes" : "No"
+            bValue = b.brightView ? "Yes" : "No"
+            break
+        }
+        
+        if (aValue === null || bValue === null) return 0
+        
+        const aStr = String(aValue).toLowerCase()
+        const bStr = String(bValue).toLowerCase()
+        if (sortConfig.direction === "asc") {
+          return aStr.localeCompare(bStr)
+        } else {
+          return bStr.localeCompare(aStr)
+        }
+      })
+      
+      return {
+        ...group,
+        models: sortedModels,
+      }
+    })
+  }, [groupedData, sortConfig, modelLabels])
+
+  const handleSort = (key: string) => {
+    setSortConfig((current) => {
+      if (current?.key === key) {
+        return current.direction === "asc" 
+          ? { key, direction: "desc" }
+          : null
+      }
+      return { key, direction: "asc" }
+    })
+  }
+
+  const getSortIcon = (key: string) => {
+    if (sortConfig?.key !== key) {
+      return <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+    }
+    return sortConfig.direction === "asc"
+      ? <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+      : <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+  }
 
   if (loading) {
     return (
-      <div className="rounded-2xl border shadow-none overflow-hidden">
+      <div className="rounded-lg border shadow-none overflow-hidden">
         <div className="p-4 space-y-2">
           {[...Array(5)].map((_, i) => (
             <Skeleton key={i} className="h-12 w-full" />
@@ -124,17 +227,53 @@ export function ModelsTable({ activeTab = "all" }: ModelsTableProps) {
   }
 
   return (
-    <div className="flex flex-col rounded-2xl border shadow-none overflow-hidden h-[calc(100vh-220px)]">
+    <div className="flex flex-col rounded-lg border shadow-none overflow-hidden h-[calc(100vh-220px)]">
       {/* Sticky Header mit Spalten-Titeln */}
       <div className="sticky top-0 z-20 border-b bg-background">
-        <div className="grid grid-cols-7 gap-4 px-4 py-3 text-sm font-medium text-muted-foreground">
+        <div className="grid grid-cols-7 gap-4 px-4 py-1.5 text-xs font-medium text-muted-foreground">
           <div>Size</div>
-          <div>Model</div>
-          <div>Rear door</div>
-          <div>Axle rating</div>
-          <div>Axle type</div>
-          <div>Tires & Wheels</div>
-          <div>BrightView</div>
+          <button
+            onClick={() => handleSort("model")}
+            className="text-left flex items-center hover:text-foreground transition-colors"
+          >
+            Model
+            {getSortIcon("model")}
+          </button>
+          <button
+            onClick={() => handleSort("rearDoor")}
+            className="text-left flex items-center hover:text-foreground transition-colors"
+          >
+            Rear door
+            {getSortIcon("rearDoor")}
+          </button>
+          <button
+            onClick={() => handleSort("axleRating")}
+            className="text-left flex items-center hover:text-foreground transition-colors"
+          >
+            Axle rating
+            {getSortIcon("axleRating")}
+          </button>
+          <button
+            onClick={() => handleSort("axleType")}
+            className="text-left flex items-center hover:text-foreground transition-colors"
+          >
+            Axle type
+            {getSortIcon("axleType")}
+          </button>
+          <button
+            onClick={() => handleSort("tiresWheels")}
+            className="text-left flex items-center hover:text-foreground transition-colors"
+          >
+            Tires & Wheels
+            {getSortIcon("tiresWheels")}
+          </button>
+          <button
+            onClick={() => handleSort("brightView")}
+            className="text-left flex items-center hover:text-foreground transition-colors"
+          >
+            BrightView
+            {getSortIcon("brightView")}
+          </button>
         </div>
       </div>
       
@@ -149,7 +288,7 @@ export function ModelsTable({ activeTab = "all" }: ModelsTableProps) {
                   <div className="flex items-center gap-2 flex-1">
                     <ChevronRight className="h-4 w-4 transition-transform duration-200" />
                     <Badge className={`${colorClass} text-white`}>
-                      {group.size}
+                      {group.sizeLabel}
                     </Badge>
                     <Badge variant="secondary" className="ml-2 h-5 min-w-[24px] px-1.5 text-xs font-semibold bg-muted">
                       {group.count}
@@ -162,7 +301,7 @@ export function ModelsTable({ activeTab = "all" }: ModelsTableProps) {
                       group.models.map((model) => (
                         <div 
                           key={model.id} 
-                          className="grid grid-cols-7 gap-4 px-4 py-2 text-sm hover:bg-muted/30 border-b border-border/50 last:border-b-0"
+                          className="grid grid-cols-7 gap-4 px-4 py-1.5 text-xs hover:bg-muted/30 border-b border-border/50 last:border-b-0"
                         >
                           <div>{/* Size placeholder */}</div>
                           <div className="font-medium">

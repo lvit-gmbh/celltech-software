@@ -132,12 +132,12 @@ export function InventoryFilterDialog({
           <DialogTitle>Filter Inventory</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-3 py-4">
           {rules.map((rule, index) => (
-            <div key={rule.id} className="flex items-center gap-2">
-              <div className="flex items-center gap-2 min-w-[100px]">
+            <div key={rule.id} className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 min-w-[100px]">
                 {index === 0 ? (
-                  <span className="text-sm font-medium text-foreground">Where</span>
+                  <span className="text-xs font-medium text-foreground">Where</span>
                 ) : (
                   <Select
                     value={rule.logic || "and"}
@@ -145,7 +145,7 @@ export function InventoryFilterDialog({
                       updateRule(rule.id, { logic: value })
                     }
                   >
-                    <SelectTrigger className="w-20 h-9">
+                    <SelectTrigger className="w-20 h-8">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -162,7 +162,7 @@ export function InventoryFilterDialog({
                   updateRule(rule.id, { field: value })
                 }
               >
-                <SelectTrigger className="w-40 h-9">
+                <SelectTrigger className="w-40 h-8">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -180,7 +180,7 @@ export function InventoryFilterDialog({
                   updateRule(rule.id, { operator: value })
                 }
               >
-                <SelectTrigger className="w-32 h-9">
+                <SelectTrigger className="w-32 h-8">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -196,16 +196,16 @@ export function InventoryFilterDialog({
                 value={rule.value}
                 onChange={(e) => updateRule(rule.id, { value: e.target.value })}
                 placeholder="Enter value"
-                className="flex-1 h-9"
+                className="flex-1 h-8"
               />
 
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9"
+                className="h-8 w-8 transition-opacity hover:opacity-80"
                 onClick={() => removeRule(rule.id)}
               >
-                <X className="h-4 w-4" />
+                <X className="h-3.5 w-3.5" />
               </Button>
             </div>
           ))}
@@ -213,10 +213,10 @@ export function InventoryFilterDialog({
           <Button
             variant="outline"
             size="sm"
-            className="gap-2"
+            className="gap-1.5 transition-colors"
             onClick={() => addRule()}
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-3.5 w-3.5" />
             Add
           </Button>
         </div>

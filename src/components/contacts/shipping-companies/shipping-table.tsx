@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import type { ColumnDef, PaginationState } from "@tanstack/react-table"
+import type { ColumnDef, PaginationState, SortingState } from "@tanstack/react-table"
 import {
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -30,28 +31,76 @@ import {
 import type { ShippingCompany } from "@/types"
 import { fetchShippingCompanies, deleteShippingCompany } from "@/lib/supabase/queries"
 import { usePagination } from "@/hooks/use-pagination"
-import { Eye, Trash2 } from "lucide-react"
+import { Eye, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 
 const createColumns = (onViewDetails: (company: ShippingCompany) => void, onDelete: (company: ShippingCompany) => void): ColumnDef<ShippingCompany>[] => [
   {
     accessorKey: "name",
-    header: "Name",
+    header: ({ column }) => {
+      const isSorted = column.getIsSorted()
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(isSorted === "asc")}
+          className="h-auto p-0 font-medium hover:bg-transparent group"
+        >
+          <span className="text-xs">Name</span>
+          {isSorted === "asc" ? (
+            <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+          ) : isSorted === "desc" ? (
+            <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+          ) : (
+            <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+          )}
+        </Button>
+      )
+    },
     cell: ({ row }) => (
-      <span className="text-sm font-medium">{row.getValue("name")}</span>
+      <span className="text-xs font-medium">{row.getValue("name")}</span>
     ),
   },
   {
     accessorKey: "contact",
-    header: "Contact",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="h-auto p-0 font-medium hover:bg-transparent group"
+      >
+        Contact
+        {column.getIsSorted() === "asc" ? (
+          <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+        ) : column.getIsSorted() === "desc" ? (
+          <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+        ) : (
+          <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+        )}
+      </Button>
+    ),
     cell: ({ row }) => (
       <span className="text-sm">{row.getValue("contact") || "-"}</span>
     ),
   },
   {
     accessorKey: "phone",
-    header: "Phone",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="h-auto p-0 font-medium hover:bg-transparent group"
+      >
+        Phone
+        {column.getIsSorted() === "asc" ? (
+          <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+        ) : column.getIsSorted() === "desc" ? (
+          <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+        ) : (
+          <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+        )}
+      </Button>
+    ),
     cell: ({ row }) => (
-      <span className="text-sm">{row.getValue("phone") || "-"}</span>
+      <span className="text-xs">{row.getValue("phone") || "-"}</span>
     ),
   },
   {
@@ -83,7 +132,22 @@ const createColumns = (onViewDetails: (company: ShippingCompany) => void, onDele
   },
   {
     accessorKey: "minDistance",
-    header: "Min distance",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="h-auto p-0 font-medium hover:bg-transparent group"
+      >
+        Min distance
+        {column.getIsSorted() === "asc" ? (
+          <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+        ) : column.getIsSorted() === "desc" ? (
+          <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+        ) : (
+          <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+        )}
+      </Button>
+    ),
     cell: ({ row }) => (
       <span className="text-sm">{row.getValue("minDistance")}</span>
     ),
@@ -92,21 +156,51 @@ const createColumns = (onViewDetails: (company: ShippingCompany) => void, onDele
     accessorKey: "notes",
     header: "Notes",
     cell: ({ row }) => (
-      <span className="text-sm">{row.getValue("notes") || "-"}</span>
+      <span className="text-xs">{row.getValue("notes") || "-"}</span>
     ),
   },
   {
     accessorKey: "mail",
-    header: "Mail",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="h-auto p-0 font-medium hover:bg-transparent group"
+      >
+        Mail
+        {column.getIsSorted() === "asc" ? (
+          <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+        ) : column.getIsSorted() === "desc" ? (
+          <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+        ) : (
+          <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+        )}
+      </Button>
+    ),
     cell: ({ row }) => (
       <span className="text-sm">{row.getValue("mail") || "-"}</span>
     ),
   },
   {
     accessorKey: "state",
-    header: "State",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="h-auto p-0 font-medium hover:bg-transparent group"
+      >
+        State
+        {column.getIsSorted() === "asc" ? (
+          <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+        ) : column.getIsSorted() === "desc" ? (
+          <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+        ) : (
+          <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+        )}
+      </Button>
+    ),
     cell: ({ row }) => (
-      <span className="text-sm">{row.getValue("state") || "-"}</span>
+      <span className="text-xs">{row.getValue("state") || "-"}</span>
     ),
   },
   {
@@ -241,6 +335,7 @@ export function ShippingCompaniesTable() {
     pageIndex: 0,
     pageSize: 25,
   })
+  const [sorting, setSorting] = useState<SortingState>([])
 
   useEffect(() => {
     async function loadData() {
@@ -286,9 +381,12 @@ export function ShippingCompaniesTable() {
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     onPaginationChange: setPagination,
+    onSortingChange: setSorting,
     state: {
       pagination,
+      sorting,
     },
   })
 
@@ -307,7 +405,7 @@ export function ShippingCompaniesTable() {
 
   if (loading) {
     return (
-      <div className="rounded-2xl border shadow-none overflow-hidden">
+      <div className="rounded-lg border shadow-none overflow-hidden">
         <div className="p-4 space-y-2">
           {[...Array(5)].map((_, i) => (
             <Skeleton key={i} className="h-12 w-full" />
@@ -319,7 +417,7 @@ export function ShippingCompaniesTable() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex-1 overflow-hidden rounded-2xl border shadow-none flex flex-col">
+      <div className="flex-1 overflow-hidden rounded-lg border shadow-none flex flex-col">
         <div className="flex-1 overflow-auto">
           <table className="w-full caption-bottom text-sm">
             <thead className="sticky top-0 z-20 bg-background [&_tr]:border-b">
@@ -328,7 +426,7 @@ export function ShippingCompaniesTable() {
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b"
+                      className="h-10 px-3 py-2 text-left align-middle font-medium text-muted-foreground bg-background border-b"
                     >
                       {header.isPlaceholder
                         ? null
@@ -346,7 +444,7 @@ export function ShippingCompaniesTable() {
                 table.getRowModel().rows.map((row) => (
                   <tr key={row.id} className="group border-b transition-colors hover:bg-muted/50">
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="py-3 px-4 align-middle">
+                      <td key={cell.id} className="py-1.5 px-4 align-middle">
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()

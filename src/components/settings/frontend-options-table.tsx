@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ChevronRight } from "lucide-react"
+import { ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import type { FrontendOption } from "@/types"
 import { fetchFrontendOptions } from "@/lib/supabase/queries"
 
@@ -33,6 +33,10 @@ const colorOptions = [
 export function FrontendOptionsTable() {
   const [allOptions, setAllOptions] = useState<FrontendOption[]>([])
   const [loading, setLoading] = useState(true)
+  const [sortConfig, setSortConfig] = useState<{
+    key: string
+    direction: "asc" | "desc"
+  } | null>(null)
 
   useEffect(() => {
     async function loadData() {
@@ -51,7 +55,7 @@ export function FrontendOptionsTable() {
   }, [])
 
   // Group options by type
-  const data = useMemo(() => {
+  const groupedData = useMemo(() => {
     if (!allOptions || allOptions.length === 0) {
       return []
     }
@@ -72,9 +76,71 @@ export function FrontendOptionsTable() {
     }))
   }, [allOptions])
 
+  // Sort options within each group
+  const data = useMemo(() => {
+    if (!sortConfig) return groupedData
+    
+    return groupedData.map((group) => {
+      const sortedOptions = [...group.options].sort((a, b) => {
+        let aValue: string | null = null
+        let bValue: string | null = null
+        
+        switch (sortConfig.key) {
+          case "label":
+            aValue = a.label || ""
+            bValue = b.label || ""
+            break
+          case "value":
+            aValue = a.value || ""
+            bValue = b.value || ""
+            break
+          case "abbreviation":
+            aValue = a.abbreviation || ""
+            bValue = b.abbreviation || ""
+            break
+        }
+        
+        if (aValue === null || bValue === null) return 0
+        
+        const aStr = String(aValue).toLowerCase()
+        const bStr = String(bValue).toLowerCase()
+        if (sortConfig.direction === "asc") {
+          return aStr.localeCompare(bStr)
+        } else {
+          return bStr.localeCompare(aStr)
+        }
+      })
+      
+      return {
+        ...group,
+        options: sortedOptions,
+      }
+    })
+  }, [groupedData, sortConfig])
+
+  const handleSort = (key: string) => {
+    setSortConfig((current) => {
+      if (current?.key === key) {
+        return current.direction === "asc" 
+          ? { key, direction: "desc" }
+          : null
+      }
+      return { key, direction: "asc" }
+    })
+  }
+
+  const getSortIcon = (key: string) => {
+    if (sortConfig?.key !== key) {
+      return <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+    }
+    return sortConfig.direction === "asc"
+      ? <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+      : <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+  }
+
   if (loading) {
     return (
-      <div className="rounded-2xl border shadow-none overflow-hidden">
+      <div className="rounded-lg border shadow-none overflow-hidden">
         <div className="p-4 space-y-2">
           {[...Array(5)].map((_, i) => (
             <Skeleton key={i} className="h-12 w-full" />
@@ -85,14 +151,32 @@ export function FrontendOptionsTable() {
   }
 
   return (
-    <div className="flex flex-col rounded-2xl border shadow-none overflow-hidden h-[calc(100vh-220px)]">
+    <div className="flex flex-col rounded-lg border shadow-none overflow-hidden h-[calc(100vh-220px)]">
       {/* Sticky Header mit Spalten-Titeln */}
       <div className="sticky top-0 z-20 border-b bg-background">
-        <div className="grid grid-cols-4 gap-4 px-4 py-3 text-sm font-medium text-muted-foreground">
+        <div className="grid grid-cols-4 gap-4 px-3 py-2 text-sm font-medium text-muted-foreground">
           <div>Type</div>
-          <div>Label</div>
-          <div>Value</div>
-          <div>Abbreviation</div>
+          <button
+            onClick={() => handleSort("label")}
+            className="text-left flex items-center hover:text-foreground transition-colors group"
+          >
+            <span className="text-xs">Label</span>
+            {getSortIcon("label")}
+          </button>
+          <button
+            onClick={() => handleSort("value")}
+            className="text-left flex items-center hover:text-foreground transition-colors group"
+          >
+            <span className="text-xs">Value</span>
+            {getSortIcon("value")}
+          </button>
+          <button
+            onClick={() => handleSort("abbreviation")}
+            className="text-left flex items-center hover:text-foreground transition-colors group"
+          >
+            <span className="text-xs">Abbreviation</span>
+            {getSortIcon("abbreviation")}
+          </button>
         </div>
       </div>
       
@@ -120,7 +204,7 @@ export function FrontendOptionsTable() {
                       group.options.map((option) => (
                         <div 
                           key={option.id} 
-                          className="grid grid-cols-4 gap-4 px-4 py-2 text-sm hover:bg-muted/30 border-b border-border/50 last:border-b-0"
+                          className="grid grid-cols-4 gap-4 px-4 py-1.5 text-xs hover:bg-muted/30 border-b border-border/50 last:border-b-0"
                         >
                           <div>{/* Type placeholder */}</div>
                           <div className="font-medium">{option.label}</div>

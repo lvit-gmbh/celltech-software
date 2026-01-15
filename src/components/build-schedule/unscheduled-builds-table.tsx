@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import type { ColumnDef, PaginationState } from "@tanstack/react-table"
+import type { ColumnDef, PaginationState, SortingState } from "@tanstack/react-table"
 import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -14,7 +15,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
-import { Search, Filter, Download, RefreshCw } from "lucide-react"
+import { Search, Filter, Download, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import {
   Pagination,
   PaginationContent,
@@ -52,14 +53,47 @@ interface UnscheduledBuild {
 const createColumns = (): ColumnDef<UnscheduledBuild>[] => [
   {
     accessorKey: "orderAsset",
-    header: "Order/Asset",
+    header: ({ column }) => {
+      const isSorted = column.getIsSorted()
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(isSorted === "asc")}
+          className="h-auto p-0 font-medium hover:bg-transparent group"
+        >
+          <span className="text-xs">Order/Asset</span>
+          {isSorted === "asc" ? (
+            <ArrowUp className="ml-1.5 h-3 w-3" />
+          ) : isSorted === "desc" ? (
+            <ArrowDown className="ml-1.5 h-3 w-3" />
+          ) : (
+            <ArrowUpDown className="ml-1.5 h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+          )}
+        </Button>
+      )
+    },
     cell: ({ row }) => (
-      <span className="text-sm font-medium">{row.getValue("orderAsset")}</span>
+      <span className="text-xs font-medium">{row.getValue("orderAsset")}</span>
     ),
   },
   {
     accessorKey: "model",
-    header: "Model",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="h-auto p-0 font-medium hover:bg-transparent -ml-3"
+      >
+        Model
+        {column.getIsSorted() === "asc" ? (
+          <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+        ) : column.getIsSorted() === "desc" ? (
+          <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+        ) : (
+          <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+        )}
+      </Button>
+    ),
     cell: ({ row }) => {
       const model = row.getValue("model") as string
       return (
@@ -71,14 +105,50 @@ const createColumns = (): ColumnDef<UnscheduledBuild>[] => [
   },
   {
     accessorKey: "dealer",
-    header: "Dealer",
+    header: ({ column }) => {
+      const isSorted = column.getIsSorted()
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(isSorted === "asc")}
+          className="h-auto p-0 font-medium hover:bg-transparent group"
+        >
+          <span className="text-xs">Dealer</span>
+          {isSorted === "asc" ? (
+            <ArrowUp className="ml-1.5 h-3 w-3" />
+          ) : isSorted === "desc" ? (
+            <ArrowDown className="ml-1.5 h-3 w-3" />
+          ) : (
+            <ArrowUpDown className="ml-1.5 h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+          )}
+        </Button>
+      )
+    },
     cell: ({ row }) => (
-      <span className="text-sm">{row.getValue("dealer") || "-"}</span>
+      <span className="text-xs">{row.getValue("dealer") || "-"}</span>
     ),
   },
   {
     accessorKey: "status",
-    header: "Status",
+    header: ({ column }) => {
+      const isSorted = column.getIsSorted()
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(isSorted === "asc")}
+          className="h-auto p-0 font-medium hover:bg-transparent group"
+        >
+          <span className="text-xs">Status</span>
+          {isSorted === "asc" ? (
+            <ArrowUp className="ml-1.5 h-3 w-3" />
+          ) : isSorted === "desc" ? (
+            <ArrowDown className="ml-1.5 h-3 w-3" />
+          ) : (
+            <ArrowUpDown className="ml-1.5 h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+          )}
+        </Button>
+      )
+    },
     cell: ({ row }) => {
       const status = row.getValue("status") as string
       const statusColor = statusColors[status] || "bg-slate-500 text-white"
@@ -91,7 +161,25 @@ const createColumns = (): ColumnDef<UnscheduledBuild>[] => [
   },
   {
     accessorKey: "startDate",
-    header: "Start date",
+    header: ({ column }) => {
+      const isSorted = column.getIsSorted()
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(isSorted === "asc")}
+          className="h-auto p-0 font-medium hover:bg-transparent group"
+        >
+          <span className="text-xs">Start date</span>
+          {isSorted === "asc" ? (
+            <ArrowUp className="ml-1.5 h-3 w-3" />
+          ) : isSorted === "desc" ? (
+            <ArrowDown className="ml-1.5 h-3 w-3" />
+          ) : (
+            <ArrowUpDown className="ml-1.5 h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+          )}
+        </Button>
+      )
+    },
     cell: ({ row }) => {
       const date = row.getValue("startDate") as string
       // Format date as MM/DD/YY or show placeholder
@@ -100,7 +188,7 @@ const createColumns = (): ColumnDef<UnscheduledBuild>[] => [
           const dateObj = new Date(date)
           if (!isNaN(dateObj.getTime())) {
             return (
-              <span className="text-sm">
+              <span className="text-xs">
                 {dateObj.toLocaleDateString("en-US", {
                   month: "2-digit",
                   day: "2-digit",
@@ -233,6 +321,7 @@ export function UnscheduledBuildsTable({ searchQuery: externalSearchQuery }: Uns
     pageIndex: 0,
     pageSize: 12,
   })
+  const [sorting, setSorting] = useState<SortingState>([])
 
   // Use external search query if provided, otherwise use internal
   const searchQuery = externalSearchQuery ?? internalSearchQuery
@@ -281,9 +370,12 @@ export function UnscheduledBuildsTable({ searchQuery: externalSearchQuery }: Uns
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     onPaginationChange: setPagination,
+    onSortingChange: setSorting,
     state: {
       pagination,
+      sorting,
     },
   })
 
@@ -410,7 +502,7 @@ export function UnscheduledBuildsTable({ searchQuery: externalSearchQuery }: Uns
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-hidden rounded-2xl border shadow-none">
+      <div className="flex-1 overflow-hidden rounded-lg border shadow-none">
         <div className="h-full overflow-auto">
           <table className="w-full caption-bottom text-sm">
             <thead className="sticky top-0 z-20 bg-background [&_tr]:border-b">
@@ -419,7 +511,7 @@ export function UnscheduledBuildsTable({ searchQuery: externalSearchQuery }: Uns
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b"
+                      className="h-10 px-3 py-2 text-left align-middle font-medium text-muted-foreground bg-background border-b"
                     >
                       {header.isPlaceholder
                         ? null
@@ -444,7 +536,7 @@ export function UnscheduledBuildsTable({ searchQuery: externalSearchQuery }: Uns
                     }`}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="py-3 px-4 align-top">
+                      <td key={cell.id} className="py-1.5 px-4 align-top">
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()

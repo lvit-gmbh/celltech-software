@@ -1,5 +1,6 @@
 import { ReactNode } from "react"
 import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
 
 interface PageHeaderProps {
   title: string
@@ -14,6 +15,7 @@ export function PageHeader({ title, actions, children }: PageHeaderProps) {
         <h1 className="text-3xl font-bold">{title}</h1>
         {actions && <div className="flex items-center gap-2">{actions}</div>}
       </div>
+      <Separator className="w-full" />
       {children}
     </div>
   )

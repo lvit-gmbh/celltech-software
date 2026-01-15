@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ChevronRight, Download, Filter, RefreshCw } from "lucide-react"
+import { ChevronRight, Download, Filter, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import type { InventoryItem } from "@/types"
 import { InventoryFilterDialog, type FilterRule } from "./inventory-filter-dialog"
 
@@ -42,6 +42,10 @@ export function InventoryTable({ tab, allExpanded = false }: InventoryTableProps
   const [refreshKey, setRefreshKey] = useState(0)
   const [filterDialogOpen, setFilterDialogOpen] = useState(false)
   const [activeFilters, setActiveFilters] = useState<FilterRule[]>([])
+  const [sortConfig, setSortConfig] = useState<{
+    key: string
+    direction: "asc" | "desc"
+  } | null>(null)
   const prevAllExpandedRef = useRef(allExpanded)
   const isExpandingAllRef = useRef(false)
 
@@ -216,7 +220,93 @@ export function InventoryTable({ tab, allExpanded = false }: InventoryTableProps
     setData(filteredGroups)
   }, [activeFilters, allData])
 
-  const totalItems = useMemo(() => data.reduce((sum, group) => sum + group.count, 0), [data])
+  // Sort items within each group
+  const sortedData = useMemo(() => {
+    if (!sortConfig) return data
+    
+    return data.map((group) => {
+      const sortedItems = [...group.items].sort((a, b) => {
+        let aValue: string | number | null = null
+        let bValue: string | number | null = null
+        
+        switch (sortConfig.key) {
+          case "partType":
+            aValue = a.partType || ""
+            bValue = b.partType || ""
+            break
+          case "label":
+            aValue = a.label || ""
+            bValue = b.label || ""
+            break
+          case "pn":
+            aValue = a.pn || ""
+            bValue = b.pn || ""
+            break
+          case "unit":
+            aValue = a.unit || ""
+            bValue = b.unit || ""
+            break
+          case "min":
+            aValue = a.min || 0
+            bValue = b.min || 0
+            break
+          case "available":
+            aValue = a.available || 0
+            bValue = b.available || 0
+            break
+          case "onHand":
+            aValue = a.onHand || 0
+            bValue = b.onHand || 0
+            break
+          case "reserved":
+            aValue = a.reserved || 0
+            bValue = b.reserved || 0
+            break
+        }
+        
+        if (aValue === null || bValue === null) return 0
+        
+        if (typeof aValue === "number" && typeof bValue === "number") {
+          return sortConfig.direction === "asc" ? aValue - bValue : bValue - aValue
+        }
+        
+        const aStr = String(aValue).toLowerCase()
+        const bStr = String(bValue).toLowerCase()
+        if (sortConfig.direction === "asc") {
+          return aStr.localeCompare(bStr)
+        } else {
+          return bStr.localeCompare(aStr)
+        }
+      })
+      
+      return {
+        ...group,
+        items: sortedItems,
+      }
+    })
+  }, [data, sortConfig])
+
+  const handleSort = (key: string) => {
+    setSortConfig((current) => {
+      if (current?.key === key) {
+        return current.direction === "asc" 
+          ? { key, direction: "desc" }
+          : null
+      }
+      return { key, direction: "asc" }
+    })
+  }
+
+  const getSortIcon = (key: string) => {
+    if (sortConfig?.key !== key) {
+      return <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+    }
+    return sortConfig.direction === "asc"
+      ? <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+      : <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+  }
+
+  const totalItems = useMemo(() => sortedData.reduce((sum, group) => sum + group.count, 0), [sortedData])
 
   const handleRefresh = () => {
     setRefreshKey((prev) => prev + 1)
@@ -299,7 +389,7 @@ export function InventoryTable({ tab, allExpanded = false }: InventoryTableProps
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="rounded-2xl border shadow-none">
+        <div className="rounded-lg border shadow-none">
           <div className="p-4 space-y-2">
             {[...Array(5)].map((_, i) => (
               <Skeleton key={i} className="h-12 w-full" />
@@ -311,18 +401,66 @@ export function InventoryTable({ tab, allExpanded = false }: InventoryTableProps
   }
 
   return (
-    <div className="flex flex-col h-full rounded-2xl border shadow-none overflow-hidden">
+    <div className="flex flex-col h-full rounded-lg border shadow-none overflow-hidden">
       {/* Column Headers - Fixed */}
-      <div className="flex-shrink-0 border-b bg-background px-4 py-3 z-10">
-        <div className="grid grid-cols-8 gap-4 text-sm font-medium text-muted-foreground">
-          <div>Part type</div>
-          <div>Label</div>
-          <div>PN</div>
-          <div>Unit</div>
-          <div>Min.</div>
-          <div>Available</div>
-          <div>On Hand</div>
-          <div>Reserved</div>
+      <div className="flex-shrink-0 border-b bg-background px-3 py-2 z-10">
+        <div className="grid grid-cols-8 gap-4 text-xs font-medium text-muted-foreground">
+          <button
+            onClick={() => handleSort("partType")}
+            className="text-left flex items-center hover:text-foreground transition-colors group"
+          >
+            <span className="text-xs">Part type</span>
+            {getSortIcon("partType")}
+          </button>
+          <button
+            onClick={() => handleSort("label")}
+            className="text-left flex items-center hover:text-foreground transition-colors"
+          >
+            Label
+            {getSortIcon("label")}
+          </button>
+          <button
+            onClick={() => handleSort("pn")}
+            className="text-left flex items-center hover:text-foreground transition-colors"
+          >
+            PN
+            {getSortIcon("pn")}
+          </button>
+          <button
+            onClick={() => handleSort("unit")}
+            className="text-left flex items-center hover:text-foreground transition-colors"
+          >
+            Unit
+            {getSortIcon("unit")}
+          </button>
+          <button
+            onClick={() => handleSort("min")}
+            className="text-left flex items-center hover:text-foreground transition-colors"
+          >
+            Min.
+            {getSortIcon("min")}
+          </button>
+          <button
+            onClick={() => handleSort("available")}
+            className="text-left flex items-center hover:text-foreground transition-colors"
+          >
+            Available
+            {getSortIcon("available")}
+          </button>
+          <button
+            onClick={() => handleSort("onHand")}
+            className="text-left flex items-center hover:text-foreground transition-colors"
+          >
+            On Hand
+            {getSortIcon("onHand")}
+          </button>
+          <button
+            onClick={() => handleSort("reserved")}
+            className="text-left flex items-center hover:text-foreground transition-colors"
+          >
+            Reserved
+            {getSortIcon("reserved")}
+          </button>
         </div>
       </div>
       
@@ -334,7 +472,7 @@ export function InventoryTable({ tab, allExpanded = false }: InventoryTableProps
           onValueChange={handleAccordionValueChange}
           className={`w-full ${isExpandingAllRef.current ? '[&_[data-state=open]]:!transition-none' : ''}`}
         >
-          {data.map((group, index) => {
+          {sortedData.map((group, index) => {
             const colorClass = colorOptions[index % colorOptions.length]
             return (
               <AccordionItem key={index} value={`group-${index}`} className="border-b">
@@ -404,7 +542,7 @@ export function InventoryTable({ tab, allExpanded = false }: InventoryTableProps
       </div>
       
       {/* Footer - Fixed */}
-      <div className="flex-shrink-0 border-t bg-background px-4 py-2">
+      <div className="flex-shrink-0 border-t bg-background px-3 py-2">
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">{totalItems} results</span>
           <div className="flex items-center gap-2">

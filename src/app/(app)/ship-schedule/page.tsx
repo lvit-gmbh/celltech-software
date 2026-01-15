@@ -59,28 +59,34 @@ export default function ShipSchedulePage() {
   return (
     <div className={`space-y-4 ${shipScheduleView === "month" ? "flex flex-col h-[calc(100vh-80px)]" : ""}`}>
       <div className={shipScheduleView === "month" ? "sticky top-0 z-20 bg-background pb-4 space-y-4" : "space-y-4"}>
-        <PageHeader
-          title="Shipping Schedule"
-          actions={
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1 max-w-md w-full">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground" />
-                <Input 
-                  placeholder="Search shipments..." 
-                  className="h-10 pl-10 rounded-lg border text-foreground w-full"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <Tabs value={shipScheduleView} onValueChange={(v) => setShipScheduleView(v as "week" | "month")}>
-                <TabsList className="h-10">
-                  <TabsTrigger value="week" className="min-w-[120px]">Week</TabsTrigger>
-                  <TabsTrigger value="month" className="min-w-[120px]">Month</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-          }
-        />
+        <PageHeader title="Shipping Schedule" />
+
+        {/* Tabs + Search */}
+        <div className="grid grid-cols-[1fr_1fr_1fr] gap-4 items-center">
+          {/* Spalte 1: Tabs */}
+          <div className="w-2/3 justify-self-start">
+            <Tabs value={shipScheduleView} onValueChange={(v) => setShipScheduleView(v as "week" | "month")}>
+              <TabsList className="h-10">
+                <TabsTrigger value="week" className="min-w-[120px]">Week</TabsTrigger>
+                <TabsTrigger value="month" className="min-w-[120px]">Month</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+
+          {/* Spalte 2: Searchbar */}
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground" />
+            <Input 
+              placeholder="Search shipments..." 
+              className="h-10 pl-10 rounded-lg border text-foreground w-full"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          {/* Spalte 3: Leer */}
+          <div></div>
+        </div>
 
         {/* Date Navigation */}
         <div className="flex items-center justify-between rounded-2xl border shadow-none p-4 bg-background">

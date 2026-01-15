@@ -66,28 +66,33 @@ export default function TrailerOrdersPage() {
           />
 
           {/* Tabs + Search + Show Closed Toggle */}
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
+          <div className="grid grid-cols-[1fr_1fr_1fr] gap-4 items-center">
+            {/* Spalte 1: Tabs */}
+            <div className="w-2/3 justify-self-start">
               <Tabs value={activeTab} onValueChange={(value) => setActiveTab("trailer-orders", value)}>
-                <TabsList className="h-10">
+                <TabsList className="h-10 w-full">
                   {tabs.map((tab) => (
-                    <TabsTrigger key={tab.value} value={tab.value} className="min-w-[90px]">
+                    <TabsTrigger key={tab.value} value={tab.value} className="flex-1">
                       {tab.label}
                     </TabsTrigger>
                   ))}
                 </TabsList>
               </Tabs>
-              <div className="relative flex-1 max-w-lg w-full">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground" />
-                <Input 
-                  placeholder="Search Orders" 
-                  className="h-10 pl-10 rounded-lg border text-foreground w-full"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
             </div>
-            <div className="flex items-center gap-2">
+
+            {/* Spalte 2: Searchbar */}
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground" />
+              <Input 
+                placeholder="Search Orders" 
+                className="h-10 pl-10 rounded-lg border text-foreground w-full"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            {/* Spalte 3: Show Closed Toggle */}
+            <div className="w-1/2 justify-self-end flex items-center justify-end gap-2">
               <Label htmlFor="show-closed" className="text-sm text-foreground cursor-pointer">
                 show closed orders
               </Label>

@@ -247,7 +247,7 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
 
           {/* Scrollable content with full-height columns */}
           <div className="flex-1 overflow-y-auto">
-            <div className="grid grid-cols-6 bg-border">
+            <div className="grid grid-cols-6 bg-border min-h-[calc(100vh-380px)]">
               {calendarData.map((day, index) => {
                 const isToday =
                   day.fullDate.getDate() === today.getDate() &&
@@ -257,8 +257,8 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
                 return (
                   <div
                     key={`content-${day.date}-${index}`}
-                    className={`flex flex-col bg-background ${
-                      isToday ? "bg-blue-50 dark:bg-blue-950/20" : ""
+                    className={`flex flex-col min-h-[calc(100vh-380px)] ${
+                      isToday ? "bg-blue-50 dark:bg-blue-950/20" : "bg-background"
                     }`}
                   >
                     <div className="flex-1 p-3 space-y-2 flex flex-col">

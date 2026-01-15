@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import type { ColumnDef, PaginationState, Row } from "@tanstack/react-table"
+import type { ColumnDef, PaginationState, Row, SortingState } from "@tanstack/react-table"
 import {
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
 import { Badge } from "@/components/ui/badge"
@@ -27,7 +28,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { GripVertical, CalendarX, FileText } from "lucide-react"
+import { GripVertical, CalendarX, FileText, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import type { BuildSchedule } from "@/types"
 import { fetchBuildSchedule, updateBuildScheduleOrder } from "@/lib/supabase/queries"
 import type { DateRange } from "react-day-picker"
@@ -153,7 +154,7 @@ function SortableRow({ row, index, onTraveler, onUnschedule }: SortableRowProps)
         if (cell.column.id === "drag-handle") return null
         if (cell.column.id === "actions") {
           return (
-            <td key={cell.id} className="py-2.5 px-4 align-middle">
+            <td key={cell.id} className="py-2 px-3 align-middle">
               <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200">
                 <TooltipProvider delayDuration={300}>
                   <Tooltip>
@@ -202,7 +203,7 @@ function SortableRow({ row, index, onTraveler, onUnschedule }: SortableRowProps)
           )
         }
         return (
-          <td key={cell.id} className="py-2.5 px-4 align-middle">
+          <td key={cell.id} className="py-2 px-3 align-middle">
             {flexRender(cell.column.columnDef.cell, cell.getContext())}
           </td>
         )
@@ -231,6 +232,7 @@ export function BuildScheduleTable({
     pageIndex: 0,
     pageSize: 25,
   })
+  const [sorting, setSorting] = useState<SortingState>([])
 
   // Sensors for drag and drop
   const sensors = useSensors(
@@ -387,7 +389,25 @@ export function BuildScheduleTable({
     },
     {
       accessorKey: "startDate",
-      header: "Start Date",
+      header: ({ column }) => {
+        const isSorted = column.getIsSorted()
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(isSorted === "asc")}
+            className="h-auto p-0 font-medium hover:bg-transparent group"
+          >
+            <span className="text-xs">Start Date</span>
+            {isSorted === "asc" ? (
+            <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+          ) : isSorted === "desc" ? (
+            <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+          ) : (
+            <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+            )}
+          </Button>
+        )
+      },
       cell: ({ row }) => {
         const dateStr = row.getValue("startDate") as string
         if (!dateStr) return <span className="text-sm text-muted-foreground">-</span>
@@ -401,7 +421,7 @@ export function BuildScheduleTable({
           return (
             <div className="flex items-center gap-2">
               <Badge className={`${dayColor} text-white text-xs px-2`}>{dayName}</Badge>
-              <span className="text-sm">{formattedDate}</span>
+              <span className="text-xs">{formattedDate}</span>
             </div>
           )
         } catch {
@@ -411,9 +431,27 @@ export function BuildScheduleTable({
     },
     {
       accessorKey: "orderAsset",
-      header: "Order/Asset",
+      header: ({ column }) => {
+        const isSorted = column.getIsSorted()
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(isSorted === "asc")}
+            className="h-auto p-0 font-medium hover:bg-transparent group"
+          >
+            <span className="text-xs">Order/Asset</span>
+            {isSorted === "asc" ? (
+            <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+          ) : isSorted === "desc" ? (
+            <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+          ) : (
+            <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+            )}
+          </Button>
+        )
+      },
       cell: ({ row }) => (
-        <span className="text-sm font-medium">{row.getValue("orderAsset") || "-"}</span>
+        <span className="text-xs font-medium">{row.getValue("orderAsset") || "-"}</span>
       ),
     },
     {
@@ -449,21 +487,72 @@ export function BuildScheduleTable({
     },
     {
       accessorKey: "dealer",
-      header: "Dealer",
+      header: ({ column }) => {
+        const isSorted = column.getIsSorted()
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(isSorted === "asc")}
+            className="h-auto p-0 font-medium hover:bg-transparent group"
+          >
+            <span className="text-xs">Dealer</span>
+            {isSorted === "asc" ? (
+            <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+          ) : isSorted === "desc" ? (
+            <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+          ) : (
+            <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+            )}
+          </Button>
+        )
+      },
       cell: ({ row }) => (
-        <span className="text-sm font-medium">{row.getValue("dealer") || "-"}</span>
+        <span className="text-xs font-medium">{row.getValue("dealer") || "-"}</span>
       ),
     },
     {
       accessorKey: "vin",
-      header: "VIN",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="h-auto p-0 font-medium hover:bg-transparent -ml-3"
+        >
+          VIN
+          {column.getIsSorted() === "asc" ? (
+          <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+        ) : column.getIsSorted() === "desc" ? (
+          <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+        ) : (
+          <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+          )}
+        </Button>
+      ),
       cell: ({ row }) => (
         <span className="text-sm">{row.getValue("vin") || "-"}</span>
       ),
     },
     {
       accessorKey: "status",
-      header: "Status",
+      header: ({ column }) => {
+        const isSorted = column.getIsSorted()
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(isSorted === "asc")}
+            className="h-auto p-0 font-medium hover:bg-transparent group"
+          >
+            <span className="text-xs">Status</span>
+            {isSorted === "asc" ? (
+            <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+          ) : isSorted === "desc" ? (
+            <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+          ) : (
+            <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+            )}
+          </Button>
+        )
+      },
       cell: ({ row }) => {
         const status = row.getValue("status") as string
         if (!status) return <span className="text-sm text-muted-foreground">-</span>
@@ -482,7 +571,7 @@ export function BuildScheduleTable({
         return (
           <Input
             placeholder="Enter notes..."
-            className="w-32 h-8 text-sm"
+            className="w-32 h-7 text-xs"
             defaultValue={notes || ""}
             onClick={(e) => e.stopPropagation()}
           />
@@ -520,9 +609,12 @@ export function BuildScheduleTable({
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     onPaginationChange: setPagination,
+    onSortingChange: setSorting,
     state: {
       pagination,
+      sorting,
     },
     getRowId: (row) => row.id,
   })
@@ -542,7 +634,7 @@ export function BuildScheduleTable({
 
   if (loading) {
     return (
-      <div className="rounded-2xl border shadow-none overflow-hidden">
+      <div className="rounded-lg border shadow-none overflow-hidden">
         <div className="p-4 space-y-2">
           {[...Array(8)].map((_, i) => (
             <Skeleton key={i} className="h-12 w-full" />
@@ -560,19 +652,19 @@ export function BuildScheduleTable({
         onDragEnd={handleDragEnd}
         modifiers={[restrictToVerticalAxis, restrictToParentElement]}
       >
-        <div className="flex-1 min-h-0 overflow-hidden rounded-2xl border shadow-none flex flex-col">
+        <div className="flex-1 min-h-0 overflow-hidden rounded-lg border shadow-none flex flex-col">
           <div className="flex-1 min-h-0 overflow-auto">
             <table className="w-full caption-bottom text-sm">
               <thead className="sticky top-0 z-20 bg-background [&_tr]:border-b">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id} className="border-b">
-                    <th className="h-12 px-2 w-10 text-left align-middle font-medium text-muted-foreground bg-background border-b"></th>
+                    <th className="h-9 px-2 w-10 text-left align-middle font-medium text-muted-foreground bg-background border-b"></th>
                     {headerGroup.headers.map((header) => {
                       if (header.id === "drag-handle") return null
                       return (
                         <th
                           key={header.id}
-                          className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b"
+                          className="h-9 px-4 py-1.5 text-left align-middle font-medium text-muted-foreground bg-background border-b"
                         >
                           {header.isPlaceholder
                             ? null

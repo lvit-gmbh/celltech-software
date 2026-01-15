@@ -5,7 +5,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ChevronRight } from "lucide-react"
+import { ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import type { PricingItem } from "@/types"
 import { fetchPricing } from "@/lib/supabase/queries"
 
@@ -24,6 +24,10 @@ interface TypeGroup {
 export function PricingTable() {
   const [allData, setAllData] = useState<TypeGroup[]>([])
   const [loading, setLoading] = useState(true)
+  const [sortConfig, setSortConfig] = useState<{
+    key: string
+    direction: "asc" | "desc"
+  } | null>(null)
 
   useEffect(() => {
     async function loadData() {
@@ -140,13 +144,107 @@ export function PricingTable() {
   }, [])
 
   const totalItems = useMemo(() => allData.reduce((sum, group) => sum + group.totalItems, 0), [allData])
+  
+  // Sort items within subtypes
+  const sortedData = useMemo(() => {
+    if (!sortConfig) return allData
+    
+    return allData.map((typeGroup) => ({
+      ...typeGroup,
+      subtypes: typeGroup.subtypes.map((subtypeGroup) => {
+        const sortedItems = [...subtypeGroup.items].sort((a, b) => {
+          let aValue: string | number | null = null
+          let bValue: string | number | null = null
+          
+          switch (sortConfig.key) {
+            case "type":
+              aValue = a.type || ""
+              bValue = b.type || ""
+              break
+            case "name":
+              aValue = a.name || a.fullName || ""
+              bValue = b.name || b.fullName || ""
+              break
+            case "pn":
+              aValue = a.pn || ""
+              bValue = b.pn || ""
+              break
+            case "subtype":
+              aValue = a.subtype || ""
+              bValue = b.subtype || ""
+              break
+            case "maxAmount":
+              aValue = a.maxAmount || 0
+              bValue = b.maxAmount || 0
+              break
+            case "unit":
+              aValue = a.unit || ""
+              bValue = b.unit || ""
+              break
+            case "status":
+              aValue = a.status || ""
+              bValue = b.status || ""
+              break
+            case "pricePerUnit":
+              aValue = a.pricePerUnit || 0
+              bValue = b.pricePerUnit || 0
+              break
+            case "pricePerUnitBV":
+              aValue = a.pricePerUnitBV || 0
+              bValue = b.pricePerUnitBV || 0
+              break
+          }
+          
+          if (aValue === null || bValue === null) return 0
+          
+          if (typeof aValue === "number" && typeof bValue === "number") {
+            return sortConfig.direction === "asc" ? aValue - bValue : bValue - aValue
+          }
+          
+          const aStr = String(aValue).toLowerCase()
+          const bStr = String(bValue).toLowerCase()
+          if (sortConfig.direction === "asc") {
+            return aStr.localeCompare(bStr)
+          } else {
+            return bStr.localeCompare(aStr)
+          }
+        })
+        
+        return {
+          ...subtypeGroup,
+          items: sortedItems,
+        }
+      }),
+    }))
+  }, [allData, sortConfig])
+
+  const handleSort = (key: string) => {
+    setSortConfig((current) => {
+      if (current?.key === key) {
+        return current.direction === "asc" 
+          ? { key, direction: "desc" }
+          : null
+      }
+      return { key, direction: "asc" }
+    })
+  }
+
+  const getSortIcon = (key: string) => {
+    if (sortConfig?.key !== key) {
+      return <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+    }
+    return sortConfig.direction === "asc"
+      ? <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+      : <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+  }
+  
   // No pagination needed - we only have 2 types max
-  const paginatedData = useMemo(() => allData, [allData])
+  const paginatedData = useMemo(() => sortedData, [sortedData])
 
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="rounded-2xl border shadow-none overflow-hidden">
+        <div className="rounded-lg border shadow-none overflow-hidden">
           <div className="p-4 space-y-2">
             {[...Array(2)].map((_, i) => (
               <Skeleton key={i} className="h-16 w-full" />
@@ -159,18 +257,72 @@ export function PricingTable() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex-1 overflow-hidden rounded-2xl border shadow-none flex flex-col">
-        <div className="sticky top-0 z-20 border-b bg-background px-4 py-3 flex-shrink-0">
-          <div className="grid grid-cols-9 gap-4 text-sm font-medium text-muted-foreground">
-            <div>Type</div>
-            <div>Name</div>
-            <div>PN</div>
-            <div>Subtype</div>
-            <div>Max Amount</div>
-            <div>Unit</div>
-            <div>Status</div>
-            <div>Price p. U.</div>
-            <div>Price p. U. (BV)</div>
+      <div className="flex-1 overflow-hidden rounded-lg border shadow-none flex flex-col">
+        <div className="sticky top-0 z-20 border-b bg-background px-3 py-2 flex-shrink-0">
+          <div className="grid grid-cols-9 gap-4 text-xs font-medium text-muted-foreground">
+            <button
+              onClick={() => handleSort("type")}
+              className="text-left flex items-center hover:text-foreground transition-colors"
+            >
+              Type
+              {getSortIcon("type")}
+            </button>
+            <button
+              onClick={() => handleSort("name")}
+              className="text-left flex items-center hover:text-foreground transition-colors"
+            >
+              Name
+              {getSortIcon("name")}
+            </button>
+            <button
+              onClick={() => handleSort("pn")}
+              className="text-left flex items-center hover:text-foreground transition-colors"
+            >
+              PN
+              {getSortIcon("pn")}
+            </button>
+            <button
+              onClick={() => handleSort("subtype")}
+              className="text-left flex items-center hover:text-foreground transition-colors"
+            >
+              Subtype
+              {getSortIcon("subtype")}
+            </button>
+            <button
+              onClick={() => handleSort("maxAmount")}
+              className="text-left flex items-center hover:text-foreground transition-colors"
+            >
+              Max Amount
+              {getSortIcon("maxAmount")}
+            </button>
+            <button
+              onClick={() => handleSort("unit")}
+              className="text-left flex items-center hover:text-foreground transition-colors"
+            >
+              Unit
+              {getSortIcon("unit")}
+            </button>
+            <button
+              onClick={() => handleSort("status")}
+              className="text-left flex items-center hover:text-foreground transition-colors"
+            >
+              Status
+              {getSortIcon("status")}
+            </button>
+            <button
+              onClick={() => handleSort("pricePerUnit")}
+              className="text-left flex items-center hover:text-foreground transition-colors"
+            >
+              Price p. U.
+              {getSortIcon("pricePerUnit")}
+            </button>
+            <button
+              onClick={() => handleSort("pricePerUnitBV")}
+              className="text-left flex items-center hover:text-foreground transition-colors"
+            >
+              Price p. U. (BV)
+              {getSortIcon("pricePerUnitBV")}
+            </button>
           </div>
         </div>
         <div className="flex-1 overflow-auto">
@@ -326,7 +478,7 @@ export function PricingTable() {
           </Accordion>
         </div>
       </div>
-      <div className="flex-shrink-0 flex items-center justify-between gap-4 border-t pt-4 mt-4 px-4">
+      <div className="flex-shrink-0 flex items-center justify-between gap-4 border-t pt-4 mt-4 px-3">
         <div className="text-sm text-muted-foreground min-w-[200px]">
           {allData.length} {allData.length === 1 ? 'type' : 'types'} ({totalItems} total items)
         </div>

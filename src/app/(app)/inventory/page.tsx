@@ -105,24 +105,32 @@ export default function InventoryPage() {
         <PageHeader title="Inventory" />
 
         {/* Category Tabs with Orders Slider */}
-        <div className="flex items-center justify-between gap-4">
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab("inventory", value)}>
-            <TabsList className="h-10">
-              {tabs.map((tab) => (
-                <TabsTrigger key={tab.value} value={tab.value} className="min-w-[80px]">
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+        <div className="grid grid-cols-[1fr_1fr_1fr] gap-4 items-center">
+          {/* Spalte 1: Tabs */}
+          <div className="w-2/3 justify-self-start">
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab("inventory", value)}>
+              <TabsList className="h-10">
+                {tabs.map((tab) => (
+                  <TabsTrigger key={tab.value} value={tab.value} className="min-w-[80px]">
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
 
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                <ShoppingCart className="h-4 w-4" />
-                Orders
-              </Button>
-            </SheetTrigger>
+          {/* Spalte 2: Leer */}
+          <div></div>
+
+          {/* Spalte 3: Orders Button */}
+          <div className="w-1/2 justify-self-end flex items-center justify-end">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <ShoppingCart className="h-4 w-4" />
+                  Orders
+                </Button>
+              </SheetTrigger>
             <SheetContent
               side="right"
               className="w-full sm:max-w-3xl p-0 flex flex-col rounded-none border-l shadow-none"
@@ -152,15 +160,22 @@ export default function InventoryPage() {
               </div>
             </SheetContent>
           </Sheet>
+          </div>
         </div>
 
         {/* Search and Actions */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-md w-full">
+        <div className="grid grid-cols-[1fr_1fr_1fr] gap-4 items-center">
+          {/* Spalte 1: Leer */}
+          <div></div>
+
+          {/* Spalte 2: Searchbar */}
+          <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground" />
             <Input placeholder="Search Parts" className="h-10 pl-10 rounded-lg border text-foreground w-full" />
           </div>
-          <div className="flex items-center gap-2">
+
+          {/* Spalte 3: Actions */}
+          <div className="w-1/2 justify-self-end flex items-center justify-end gap-2">
             <Button
               variant="outline"
               size="icon"

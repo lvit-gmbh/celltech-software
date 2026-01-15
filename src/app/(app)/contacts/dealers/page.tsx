@@ -56,21 +56,28 @@ export default function DealersPage() {
         <PageHeader title="Dealer Overview" />
 
         {/* Tabs + Search + Buttons */}
-        <div className="flex items-center gap-4">
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab("dealers", value)}>
-            <TabsList className="h-10">
-              {tabs.map((tab) => (
-                <TabsTrigger key={tab.value} value={tab.value} className="min-w-[90px]">
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-          <div className="relative flex-1 max-w-md w-full">
+        <div className="grid grid-cols-[1fr_1fr_1fr] gap-4 items-center">
+          {/* Spalte 1: Tabs */}
+          <div className="w-2/3 justify-self-start">
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab("dealers", value)}>
+              <TabsList className="h-10">
+                {tabs.map((tab) => (
+                  <TabsTrigger key={tab.value} value={tab.value} className="min-w-[90px]">
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
+
+          {/* Spalte 2: Searchbar */}
+          <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground" />
             <Input placeholder="Search Dealers" className="h-10 pl-10 rounded-lg border text-foreground w-full" />
           </div>
-          <div className="flex items-center gap-2 ml-auto">
+
+          {/* Spalte 3: Add Buttons */}
+          <div className="w-1/2 justify-self-end flex items-center justify-end gap-2">
             <Button
               variant="outline"
               size="sm"

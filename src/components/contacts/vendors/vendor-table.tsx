@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import type { ColumnDef, PaginationState } from "@tanstack/react-table"
+import type { ColumnDef, PaginationState, SortingState } from "@tanstack/react-table"
 import {
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -30,11 +31,30 @@ import {
 import type { Vendor } from "@/types"
 import { fetchVendors, deleteVendor } from "@/lib/supabase/queries"
 import { usePagination } from "@/hooks/use-pagination"
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 
 const createColumns = (onDelete: (vendor: Vendor) => void): ColumnDef<Vendor>[] => [
   {
     accessorKey: "name",
-    header: "Name",
+    header: ({ column }) => {
+      const isSorted = column.getIsSorted()
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="h-auto p-0 font-medium hover:bg-transparent group"
+        >
+          <span className="text-xs">Name</span>
+          {isSorted === "asc" ? (
+            <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+          ) : isSorted === "desc" ? (
+            <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+          ) : (
+            <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+          )}
+        </Button>
+      )
+    },
     cell: ({ row }) => (
       <span className="text-sm font-medium">{row.getValue("name")}</span>
     ),
@@ -56,7 +76,7 @@ const createColumns = (onDelete: (vendor: Vendor) => void): ColumnDef<Vendor>[] 
           {email && (
             <a
               href={`mailto:${email}`}
-              className="group flex items-center gap-2 text-sm text-foreground rounded-md px-2 py-1.5 -mx-2 -my-0.5 transition-all duration-200 hover:bg-primary/10 hover:text-primary active:bg-primary/20"
+              className="group flex items-center gap-1.5 text-xs text-foreground rounded-md px-2 py-1 -mx-2 -my-0.5 transition-all duration-200 hover:bg-primary/10 hover:text-primary active:bg-primary/20"
             >
               <Mail className="h-3.5 w-3.5 text-muted-foreground transition-colors duration-200 group-hover:text-primary" />
               <span className="truncate">{email}</span>
@@ -65,7 +85,7 @@ const createColumns = (onDelete: (vendor: Vendor) => void): ColumnDef<Vendor>[] 
           {phone && (
             <a
               href={`tel:${phone.replace(/\s/g, "")}`}
-              className="group flex items-center gap-2 text-sm text-foreground rounded-md px-2 py-1.5 -mx-2 -my-0.5 transition-all duration-200 hover:bg-primary/10 hover:text-primary active:bg-primary/20"
+              className="group flex items-center gap-1.5 text-xs text-foreground rounded-md px-2 py-1 -mx-2 -my-0.5 transition-all duration-200 hover:bg-primary/10 hover:text-primary active:bg-primary/20"
             >
               <Phone className="h-3.5 w-3.5 text-muted-foreground transition-colors duration-200 group-hover:text-primary" />
               <span>{phone}</span>
@@ -77,16 +97,46 @@ const createColumns = (onDelete: (vendor: Vendor) => void): ColumnDef<Vendor>[] 
   },
   {
     accessorKey: "address",
-    header: "Address",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="h-auto p-0 font-medium hover:bg-transparent group"
+      >
+        Address
+        {column.getIsSorted() === "asc" ? (
+          <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+        ) : column.getIsSorted() === "desc" ? (
+          <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+        ) : (
+          <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+        )}
+      </Button>
+    ),
     cell: ({ row }) => (
       <span className="text-sm">{row.getValue("address") || "-"}</span>
     ),
   },
   {
     accessorKey: "zipCode",
-    header: "Zip code",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="h-auto p-0 font-medium hover:bg-transparent group"
+      >
+        Zip code
+        {column.getIsSorted() === "asc" ? (
+          <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
+        ) : column.getIsSorted() === "desc" ? (
+          <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
+        ) : (
+          <ArrowUpDown className="ml-1.5 h-2.5 w-2.5 opacity-0 group-hover:opacity-50 transition-opacity duration-200" />
+        )}
+      </Button>
+    ),
     cell: ({ row }) => (
-      <span className="text-sm">{row.getValue("zipCode")}</span>
+      <span className="text-xs">{row.getValue("zipCode")}</span>
     ),
   },
   {
@@ -177,6 +227,7 @@ export function VendorTable() {
     pageIndex: 0,
     pageSize: 25,
   })
+  const [sorting, setSorting] = useState<SortingState>([])
 
   const handleDelete = async (vendor: Vendor) => {
     if (!confirm(`Are you sure you want to delete vendor "${vendor.name}"?`)) {
@@ -218,9 +269,12 @@ export function VendorTable() {
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     onPaginationChange: setPagination,
+    onSortingChange: setSorting,
     state: {
       pagination,
+      sorting,
     },
   })
 
@@ -239,7 +293,7 @@ export function VendorTable() {
 
   if (loading) {
     return (
-      <div className="rounded-2xl border shadow-none overflow-hidden">
+      <div className="rounded-lg border shadow-none overflow-hidden">
         <div className="p-4 space-y-2">
           {[...Array(5)].map((_, i) => (
             <Skeleton key={i} className="h-12 w-full" />
@@ -251,7 +305,7 @@ export function VendorTable() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex-1 min-h-0 overflow-hidden rounded-2xl border shadow-none">
+      <div className="flex-1 min-h-0 overflow-hidden rounded-lg border shadow-none">
         <div className="h-full overflow-auto">
           <table className="w-full caption-bottom text-sm">
             <thead className="sticky top-0 z-20 bg-background [&_tr]:border-b">
@@ -260,7 +314,7 @@ export function VendorTable() {
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-background border-b"
+                      className="h-10 px-3 py-2 text-left align-middle font-medium text-muted-foreground bg-background border-b"
                     >
                       {header.isPlaceholder
                         ? null
@@ -282,7 +336,7 @@ export function VendorTable() {
                       return (
                         <td
                           key={cell.id}
-                          className={`py-3 px-4 ${isActionsColumn ? "align-middle" : "align-top"}`}
+                          className={`py-1.5 px-4 ${isActionsColumn ? "align-middle" : "align-top"}`}
                         >
                           {flexRender(
                             cell.column.columnDef.cell,
