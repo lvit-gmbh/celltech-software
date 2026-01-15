@@ -1,10 +1,12 @@
 "use client"
 
+import React from "react"
 import { PageHeader } from "@/components/shared/page-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
+import { ExpandableTabs } from "@/components/ui/expandable-tabs"
 import { Button } from "@/components/ui/button"
-import { FileDown, Calendar, TrendingUp, DollarSign, Package, Truck } from "lucide-react"
+import { FileDown, Calendar, TrendingUp, DollarSign, Package, Truck, BarChart3, Coins, Hammer } from "lucide-react"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 import { Bar, BarChart, Line, LineChart, Pie, PieChart, XAxis, YAxis } from "recharts"
 import StatisticsCard from "@/components/shadcn-studio/blocks/statistics-card-01"
@@ -58,6 +60,8 @@ const revenueChartConfig = {
 } satisfies ChartConfig
 
 export default function ReportingPage() {
+  const [activeTab, setActiveTab] = React.useState("overview")
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -105,12 +109,18 @@ export default function ReportingPage() {
       </div>
 
       {/* Charts Section */}
-      <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="sales">Sales</TabsTrigger>
-          <TabsTrigger value="production">Production</TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <div className="w-2/3">
+          <ExpandableTabs
+            tabs={[
+              { value: "overview", title: "Overview", icon: BarChart3 },
+              { value: "sales", title: "Sales", icon: Coins },
+              { value: "production", title: "Production", icon: Hammer },
+            ]}
+            value={activeTab}
+            onValueChange={setActiveTab}
+          />
+        </div>
 
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">

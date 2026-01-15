@@ -198,6 +198,11 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
       setLoading(true)
       setError(null)
       try {
+        if (!orderId) {
+          setError("Order ID is missing")
+          setLoading(false)
+          return
+        }
         const id = parseInt(orderId, 10)
         console.log("Loading order with ID:", id, "from orderId:", orderId)
         
@@ -311,7 +316,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
         const errorMessage = err instanceof Error ? err.message : "Failed to load order"
         console.error("Error details:", {
           orderId,
-          parsedId: parseInt(orderId, 10),
+          parsedId: orderId ? parseInt(orderId, 10) : null,
           error: err
         })
         setError(errorMessage)
@@ -490,7 +495,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                           className="h-10"
                         />
                         <p className="text-xs text-muted-foreground mt-1">
-                          ⓘ The order number will be padded to length 6 with preceding 0's
+                          ⓘ The order number will be padded to length 6 with preceding 0&apos;s
                         </p>
                       </div>
                     </div>

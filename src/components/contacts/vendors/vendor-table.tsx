@@ -181,6 +181,8 @@ const placeholderData: Vendor[] = [
     contactData: "chearns@aluminumline.com",
     address: "Dept 781557 PO Box 78000 Detroit, MI",
     zipCode: "48278",
+    phone: null,
+    mail: null,
   },
   {
     id: "2",
@@ -188,6 +190,8 @@ const placeholderData: Vendor[] = [
     contactData: "",
     address: "",
     zipCode: "",
+    phone: null,
+    mail: null,
   },
   {
     id: "3",
@@ -195,6 +199,8 @@ const placeholderData: Vendor[] = [
     contactData: "JuanF@absfasteners.com",
     address: "P.O. Box 31001-3474 Pasedena, CA",
     zipCode: "91110-3474",
+    phone: null,
+    mail: null,
   },
   {
     id: "4",
@@ -202,6 +208,8 @@ const placeholderData: Vendor[] = [
     contactData: "tx.orders@austinhardware.com, bedmunds@austinhardware.com (816) 246-2800",
     address: "950 NW Technology Drive Lee's Summit, MO",
     zipCode: "64086-5692",
+    phone: null,
+    mail: null,
   },
   {
     id: "5",
@@ -209,6 +217,8 @@ const placeholderData: Vendor[] = [
     contactData: "(972) 865-7518",
     address: "1233 Regal Row Dallas, TX",
     zipCode: "75247",
+    phone: null,
+    mail: null,
   },
   {
     id: "6",
@@ -216,6 +226,8 @@ const placeholderData: Vendor[] = [
     contactData: "admin@celltechmetals.com",
     address: "900 Schroeder Dr. Waco, TX",
     zipCode: "76710",
+    phone: null,
+    mail: null,
   },
 ]
 

@@ -4,12 +4,12 @@ import React, { useState, useEffect, useMemo, useCallback } from "react"
 import { PageHeader } from "@/components/shared/page-header"
 import { useUIStore } from "@/stores/ui-store"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ExpandableTabs } from "@/components/ui/expandable-tabs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Search, Printer, ChevronDown, ChevronRight, ArrowRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import { Search, Printer, ChevronDown, ChevronRight, ArrowRight, ArrowUpDown, ArrowUp, ArrowDown, Grid3x3, FileText, ClipboardList } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -223,8 +223,9 @@ export default function DashboardPage() {
           bVal = b.vin_num || ""
           break
         case "shipDate":
-          aVal = a.ship_date ? new Date(a.ship_date).getTime() : 0
-          bVal = b.ship_date ? new Date(b.ship_date).getTime() : 0
+          // ship_date doesn't exist on Order type, use shipment_id as fallback
+          aVal = a.shipment_id || 0
+          bVal = b.shipment_id || 0
           break
         case "finDate":
           aVal = a.fin_date ? new Date(a.fin_date).getTime() : 0
@@ -448,7 +449,7 @@ export default function DashboardPage() {
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Increment trailer's status</p>
+            <p>Increment trailer&apos;s status</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -721,27 +722,30 @@ export default function DashboardPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col space-y-4">
-      <PageHeader
-        title="Dashboard"
-        actions={
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={() => setExportDialogOpen(true)}
-                >
-                  <Printer className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Export Dashboard</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        }
-      />
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <div className="flex items-center gap-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => setExportDialogOpen(true)}
+                  >
+                    <Printer className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Export Dashboard</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </div>
+        <Separator className="w-full" />
+      </div>
 
       {/* Primary Status Links */}
       <div className="flex flex-wrap gap-4 items-center">
@@ -779,15 +783,15 @@ export default function DashboardPage() {
       <div className="grid grid-cols-[1fr_1fr_1fr] gap-4 items-center">
         {/* Spalte 1: Secondary Tabs */}
         <div className="w-2/3 justify-self-start">
-          <Tabs value={secondaryTab} onValueChange={(value) => setActiveTab("dashboard-secondary", value)}>
-            <TabsList className="h-10 w-full">
-              {secondaryTabs.map((tab) => (
-                <TabsTrigger key={tab.value} value={tab.value} className="flex-1">
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+          <ExpandableTabs
+            tabs={secondaryTabs.map(tab => ({ 
+              value: tab.value, 
+              title: tab.label, 
+              icon: tab.value === "all" ? Grid3x3 : tab.value === "brightview" ? FileText : ClipboardList 
+            }))}
+            value={secondaryTab}
+            onValueChange={(value) => setActiveTab("dashboard-secondary", value)}
+          />
         </div>
 
         {/* Spalte 2: Searchbar */}

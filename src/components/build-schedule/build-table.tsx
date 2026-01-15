@@ -600,7 +600,7 @@ export function BuildScheduleTable({
         return (
           <Input
             placeholder="Enter notes..."
-            className="w-32 h-7 text-xs border-none focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="w-32 h-7 text-xs border-none bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
             defaultValue={notes || ""}
             onClick={(e) => e.stopPropagation()}
           />

@@ -3,14 +3,14 @@
 import { useState } from "react"
 import { PageHeader } from "@/components/shared/page-header"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ExpandableTabs } from "@/components/ui/expandable-tabs"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Eye, EyeOff, Search, Printer, ChevronsLeft, ChevronsRight, CalendarIcon } from "lucide-react"
+import { Eye, EyeOff, Search, Printer, ChevronsLeft, ChevronsRight, CalendarIcon, Grid3x3, FileText, ClipboardList } from "lucide-react"
 import { format } from "date-fns"
 import type { DateRange } from "react-day-picker"
 import { useUIStore } from "@/stores/ui-store"
@@ -27,9 +27,9 @@ export default function BuildSchedulePage() {
   const [isUnscheduledOpen, setIsUnscheduledOpen] = useState(false)
 
   const tabs = [
-    { value: "all", label: "All" },
-    { value: "brightview", label: "BrightView" },
-    { value: "standard", label: "Standard" },
+    { value: "all", label: "All", icon: Grid3x3 },
+    { value: "brightview", label: "BrightView", icon: FileText },
+    { value: "standard", label: "Standard", icon: ClipboardList },
   ]
 
   return (
@@ -65,15 +65,11 @@ export default function BuildSchedulePage() {
         <div className="grid grid-cols-[1fr_1fr_1fr] gap-4 items-center">
           {/* Spalte 1: Tabs */}
           <div className="w-2/3 justify-self-start">
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab("build-schedule", value)}>
-              <TabsList className="h-10 w-full">
-                {tabs.map((tab) => (
-                  <TabsTrigger key={tab.value} value={tab.value} className="flex-1">
-                    {tab.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
+            <ExpandableTabs
+              tabs={tabs.map(tab => ({ value: tab.value, title: tab.label, icon: tab.icon }))}
+              value={activeTab}
+              onValueChange={(value) => setActiveTab("build-schedule", value)}
+            />
           </div>
 
           {/* Spalte 2: Searchbar */}

@@ -117,9 +117,10 @@ export default function ShippingCompanyDetailPage({
       setLoading(true)
       setError(null)
       try {
+        const id: string = companyId as string // TypeScript guard - we know it's not null due to check above
         const [companyData, shipmentsData] = await Promise.all([
-          fetchShippingCompanyById(companyId),
-          fetchShipmentsByShippingCompany(companyId),
+          fetchShippingCompanyById(id),
+          fetchShipmentsByShippingCompany(id),
         ])
 
         if (companyData) {
@@ -568,7 +569,7 @@ export default function ShippingCompanyDetailPage({
                                         <div>
                                           <span className="text-muted-foreground">Model:</span>{" "}
                                           <span className="font-medium">
-                                            {order.modelLabel || order.model || "-"}
+                                            {order.modelLabel || "-"}
                                           </span>
                                         </div>
                                         <div>

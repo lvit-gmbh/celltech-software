@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react"
 import { PageHeader } from "@/components/shared/page-header"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ExpandableTabs } from "@/components/ui/expandable-tabs"
 import { Input } from "@/components/ui/input"
-import { Search, ChevronLeft, ChevronRight } from "lucide-react"
+import { Search, ChevronLeft, ChevronRight, Calendar, CalendarDays } from "lucide-react"
 import { useUIStore } from "@/stores/ui-store"
 import { ShipScheduleCalendar } from "@/components/ship-schedule/calendar-view"
 
@@ -65,12 +65,14 @@ export default function ShipSchedulePage() {
         <div className="grid grid-cols-[1fr_1fr_1fr] gap-4 items-center">
           {/* Spalte 1: Tabs */}
           <div className="w-2/3 justify-self-start">
-            <Tabs value={shipScheduleView} onValueChange={(v) => setShipScheduleView(v as "week" | "month")}>
-              <TabsList className="h-10">
-                <TabsTrigger value="week" className="min-w-[120px]">Week</TabsTrigger>
-                <TabsTrigger value="month" className="min-w-[120px]">Month</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <ExpandableTabs
+              tabs={[
+                { value: "week", title: "Week", icon: Calendar },
+                { value: "month", title: "Month", icon: CalendarDays },
+              ]}
+              value={shipScheduleView}
+              onValueChange={(v) => setShipScheduleView(v as "week" | "month")}
+            />
           </div>
 
           {/* Spalte 2: Searchbar */}

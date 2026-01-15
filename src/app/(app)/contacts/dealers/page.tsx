@@ -4,9 +4,9 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/shared/page-header"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ExpandableTabs } from "@/components/ui/expandable-tabs"
 import { Input } from "@/components/ui/input"
-import { Plus, Search } from "lucide-react"
+import { Plus, Search, Grid3x3, FileText, ClipboardList, List, Building2, Store } from "lucide-react"
 import { useUIStore } from "@/stores/ui-store"
 import { DealerTable } from "@/components/contacts/dealers/dealer-table"
 import {
@@ -28,9 +28,9 @@ export default function DealersPage() {
   const [pendingTemplate, setPendingTemplate] = useState<DealerTemplateType | null>(null)
 
   const tabs = [
-    { value: "all", label: "All" },
-    { value: "brightview", label: "BrightView" },
-    { value: "standard", label: "Standard" },
+    { value: "all", label: "All", icon: List },
+    { value: "brightview", label: "BrightView", icon: Building2 },
+    { value: "standard", label: "Standard", icon: Store },
   ]
 
   const openConfirm = (type: DealerTemplateType) => {
@@ -59,15 +59,11 @@ export default function DealersPage() {
         <div className="grid grid-cols-[1fr_1fr_1fr] gap-4 items-center">
           {/* Spalte 1: Tabs */}
           <div className="w-2/3 justify-self-start">
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab("dealers", value)}>
-              <TabsList className="h-10">
-                {tabs.map((tab) => (
-                  <TabsTrigger key={tab.value} value={tab.value} className="min-w-[90px]">
-                    {tab.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
+            <ExpandableTabs
+              tabs={tabs.map(tab => ({ value: tab.value, title: tab.label, icon: tab.icon }))}
+              value={activeTab}
+              onValueChange={(value) => setActiveTab("dealers", value)}
+            />
           </div>
 
           {/* Spalte 2: Searchbar */}

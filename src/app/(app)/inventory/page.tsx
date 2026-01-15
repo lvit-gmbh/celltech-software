@@ -23,11 +23,11 @@ import {
 } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Switch } from "@/components/ui/switch"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ExpandableTabs } from "@/components/ui/expandable-tabs"
 import { OrderBookTable } from "@/components/trailer-orders/order-book-table"
 import { InventoryTable } from "@/components/inventory/inventory-table"
 import { useUIStore } from "@/stores/ui-store"
-import { FileSpreadsheet, Maximize2, Minimize2, Plus, Save, Search, ShoppingCart, Upload } from "lucide-react"
+import { FileSpreadsheet, Maximize2, Minimize2, Plus, Save, Search, ShoppingCart, Upload, Package, Layers, Settings, Car } from "lucide-react"
 
 export default function InventoryPage() {
   const { activeTabs, setActiveTab } = useUIStore()
@@ -44,10 +44,10 @@ export default function InventoryPage() {
   const [units, setUnits] = useState("")
 
   const tabs = [
-    { value: "items", label: "Items" },
-    { value: "assemblies", label: "Assemblies" },
-    { value: "options", label: "Options" },
-    { value: "models", label: "Models" },
+    { value: "items", label: "Items", icon: Package },
+    { value: "assemblies", label: "Assemblies", icon: Layers },
+    { value: "options", label: "Options", icon: Settings },
+    { value: "models", label: "Models", icon: Car },
   ]
 
   const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
@@ -108,15 +108,11 @@ export default function InventoryPage() {
         <div className="grid grid-cols-[1fr_1fr_1fr] gap-4 items-center">
           {/* Spalte 1: Tabs */}
           <div className="w-2/3 justify-self-start">
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab("inventory", value)}>
-              <TabsList className="h-10">
-                {tabs.map((tab) => (
-                  <TabsTrigger key={tab.value} value={tab.value} className="min-w-[80px]">
-                    {tab.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
+            <ExpandableTabs
+              tabs={tabs.map(tab => ({ value: tab.value, title: tab.label, icon: tab.icon }))}
+              value={activeTab}
+              onValueChange={(value) => setActiveTab("inventory", value)}
+            />
           </div>
 
           {/* Spalte 2: Leer */}

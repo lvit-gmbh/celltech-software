@@ -100,11 +100,11 @@ export function OrderImportDialog({ children }: OrderImportDialogProps) {
           }
           className="mt-2"
         >
-          <TabsList className="w-full justify-start rounded-2xl bg-muted/60 px-1 py-1">
-            <TabsTrigger value="brightview" className="flex-1 rounded-xl">
+          <TabsList className="w-full justify-start rounded-md bg-muted/60 px-1 py-1">
+            <TabsTrigger value="brightview" className="flex-1 rounded-md">
               BrightView
             </TabsTrigger>
-            <TabsTrigger value="standard" className="flex-1 rounded-xl">
+            <TabsTrigger value="standard" className="flex-1 rounded-md">
               Standard
             </TabsTrigger>
           </TabsList>
