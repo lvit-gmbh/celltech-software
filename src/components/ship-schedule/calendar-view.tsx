@@ -205,8 +205,8 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
       <div className={`grid ${view === "week" ? "grid-cols-6" : "grid-cols-7"} gap-3`}>
         {[...Array(view === "week" ? 6 : 35)].map((_, i) => (
           <div key={i} className="space-y-2">
-            <Skeleton className="h-16 w-full rounded-xl" />
-            <Skeleton className="h-20 w-full rounded-xl" />
+            <Skeleton className="h-16 w-full rounded-md" />
+            <Skeleton className="h-20 w-full rounded-md" />
           </div>
         ))}
       </div>
@@ -216,7 +216,7 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
   if (view === "week") {
     return (
       <>
-        <div className="w-full border shadow-none overflow-hidden bg-background rounded-2xl flex flex-col h-[calc(100vh-280px)]">
+        <div className="w-full border shadow-none overflow-hidden bg-background rounded-md flex flex-col h-[calc(100vh-280px)]">
           {/* Day Headers - sticky row */}
           <div className="sticky top-0 z-10 grid grid-cols-6 bg-border">
             {calendarData.map((day, index) => {
@@ -224,21 +224,31 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
                 day.fullDate.getDate() === today.getDate() &&
                 day.fullDate.getMonth() === today.getMonth() &&
                 day.fullDate.getFullYear() === today.getFullYear()
+              const dayOfWeek = day.fullDate.getDay()
+              const isWeekend = dayOfWeek === 0 || dayOfWeek === 6 // 0 = Sonntag, 6 = Samstag
 
               return (
                 <div
                   key={`header-${day.date}-${index}`}
-                  className={`p-4 text-center border-b ${
+                  className={`p-3 text-center ${
                     isToday
-                      ? "bg-blue-50 dark:bg-blue-950/20 border-border"
-                      : "bg-muted/30"
+                      ? "bg-blue-50 dark:bg-blue-950/20 border-b-2 border-border"
+                      : isWeekend
+                        ? "bg-muted/40 border-b border-border"
+                        : "bg-muted/30 border-b border-border"
                   }`}
                 >
-                  <div className="text-2xl font-semibold text-foreground">
-                    {day.date}
-                  </div>
-                  <div className="text-sm font-medium text-muted-foreground">
-                    {day.day}
+                  <div className="flex items-center justify-center gap-2">
+                    <span className={`text-xl font-semibold ${
+                      isToday ? "text-foreground/40" : "text-foreground"
+                    }`}>
+                      {day.date}
+                    </span>
+                    <span className={`text-sm font-medium ${
+                      isWeekend ? "text-muted-foreground/70" : "text-muted-foreground"
+                    }`}>
+                      {day.day}
+                    </span>
                   </div>
                 </div>
               )
@@ -246,22 +256,30 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
           </div>
 
           {/* Scrollable content with full-height columns */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto scrollbar-stable">
             <div className="grid grid-cols-6 bg-border min-h-[calc(100vh-380px)]">
               {calendarData.map((day, index) => {
                 const isToday =
                   day.fullDate.getDate() === today.getDate() &&
                   day.fullDate.getMonth() === today.getMonth() &&
                   day.fullDate.getFullYear() === today.getFullYear()
+                const dayOfWeek = day.fullDate.getDay()
+                const isWeekend = dayOfWeek === 0 || dayOfWeek === 6 // 0 = Sonntag, 6 = Samstag
 
                 return (
                   <div
                     key={`content-${day.date}-${index}`}
                     className={`flex flex-col min-h-[calc(100vh-380px)] ${
-                      isToday ? "bg-blue-50 dark:bg-blue-950/20" : "bg-background"
+                      isToday 
+                        ? "bg-blue-50 dark:bg-blue-950/20" 
+                        : isWeekend 
+                          ? "bg-muted/40" 
+                          : "bg-background"
                     }`}
                   >
-                    <div className="flex-1 p-3 space-y-2 flex flex-col">
+                    <div className={`flex-1 p-3 space-y-2 flex flex-col ${
+                      day.shipments.length > 0 ? "bg-muted/10" : ""
+                    }`}>
                       {day.shipments.length > 0 ? (
                         day.shipments.map((shipment) => (
                           <ShipmentCard
@@ -300,32 +318,47 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
 
   // Month view
   return (
-    <div className="rounded-2xl border shadow-none overflow-hidden bg-background flex flex-col h-[calc(100vh-280px)]">
+    <div className="rounded-md border shadow-none overflow-hidden bg-background flex flex-col h-[calc(100vh-280px)]">
       {/* Day headers - sticky */}
-      <div className="sticky top-0 z-10 grid grid-cols-7 bg-muted/30 border-b">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-          <div key={day} className="p-3 text-center text-sm font-semibold text-muted-foreground">
-            {day}
-          </div>
-        ))}
+      <div className="sticky top-0 z-10 grid grid-cols-7 border-b">
+        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, index) => {
+          const isWeekend = index === 0 || index === 6 // Sonntag oder Samstag
+          return (
+            <div 
+              key={day} 
+              className={`p-3 text-center text-sm font-semibold border-r border-border ${
+                isWeekend 
+                  ? "bg-muted/40 text-muted-foreground/70" 
+                  : "bg-muted/30 text-muted-foreground"
+              }`}
+            >
+              {day}
+            </div>
+          )
+        })}
       </div>
       
       {/* Calendar grid - scrollable */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="grid grid-cols-7 gap-px bg-border">
+      <div className="flex-1 overflow-y-auto scrollbar-stable">
+        <div className="grid grid-cols-7">
         {calendarData.map((day, index) => {
           const isCurrentMonth = day.fullDate.getMonth() === currentDate.getMonth()
           const isToday = 
             day.fullDate.getDate() === today.getDate() &&
             day.fullDate.getMonth() === today.getMonth() &&
             day.fullDate.getFullYear() === today.getFullYear()
+          const dayOfWeek = day.fullDate.getDay()
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6 // 0 = Sonntag, 6 = Samstag
           
-          // Hide days not in current month completely
+          // Days not in current month - grau wenn Wochenende
           if (!isCurrentMonth) {
             return (
               <div
                 key={`${day.date}-${index}`}
-                className="min-h-[120px] p-2 bg-background"
+                className={`min-h-[110px] border-r border-b border-border ${
+                  isWeekend ? "bg-muted/40" : "bg-background"
+                }`}
+                style={{ padding: '0.375rem' }}
               >
                 {/* Completely invisible - no content */}
               </div>
@@ -335,13 +368,18 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
           return (
             <div
               key={`${day.date}-${index}`}
-              className={`p-1.5 flex flex-col min-h-[110px] ${
-                isToday ? "bg-blue-50 dark:bg-blue-950/20" : "bg-background"
+              className={`flex flex-col min-h-[110px] border-r border-b border-border ${
+                isToday 
+                  ? "bg-blue-50 dark:bg-blue-950/20" 
+                  : isWeekend 
+                    ? "bg-muted/40" 
+                    : "bg-background"
               }`}
+              style={{ padding: '0.375rem' }}
             >
-              {/* Day number - rechts positioniert */}
-              <div className="flex items-center justify-end mb-1 h-4 shrink-0">
-                <span className={`text-sm font-medium ${isToday ? "text-primary font-semibold" : "text-foreground"}`}>
+              {/* Day number - rechts positioniert, feste Höhe für konsistente Ausrichtung */}
+              <div className="flex items-start justify-end mb-1 shrink-0" style={{ height: '1.25rem', minHeight: '1.25rem', paddingTop: '0', marginTop: '0' }}>
+                <span className={`text-sm font-medium leading-none ${isToday ? "text-primary font-semibold" : "text-foreground"}`}>
                   {day.date}
                 </span>
               </div>

@@ -160,6 +160,12 @@
   .overflow-scroll {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--border)) transparent;
+    scrollbar-gutter: stable;
+  }
+  
+  /* Prevent layout shift from scrollbar */
+  .scrollbar-stable {
+    scrollbar-gutter: stable;
   }
 
   .dark .overflow-auto,

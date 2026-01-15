@@ -63,19 +63,10 @@ export default function ShipSchedulePage() {
 
         {/* Tabs + Search */}
         <div className="grid grid-cols-[1fr_1fr_1fr] gap-4 items-center">
-          {/* Spalte 1: Tabs */}
-          <div className="w-2/3 justify-self-start">
-            <ExpandableTabs
-              tabs={[
-                { value: "week", title: "Week", icon: Calendar },
-                { value: "month", title: "Month", icon: CalendarDays },
-              ]}
-              value={shipScheduleView}
-              onValueChange={(v) => setShipScheduleView(v as "week" | "month")}
-            />
-          </div>
+          {/* Linker Bereich - leer */}
+          <div></div>
 
-          {/* Spalte 2: Searchbar */}
+          {/* Searchbar - mittig, volle Breite */}
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground" />
             <Input 
@@ -86,13 +77,22 @@ export default function ShipSchedulePage() {
             />
           </div>
 
-          {/* Spalte 3: Leer */}
-          <div></div>
+          {/* Tabs - rechts positioniert */}
+          <div className="flex justify-end">
+            <ExpandableTabs
+              tabs={[
+                { value: "week", title: "Week", icon: Calendar },
+                { value: "month", title: "Month", icon: CalendarDays },
+              ]}
+              value={shipScheduleView}
+              onValueChange={(v) => setShipScheduleView(v as "week" | "month")}
+            />
+          </div>
         </div>
 
         {/* Date Navigation */}
-        <div className="flex items-center justify-between rounded-2xl border shadow-none p-4 bg-background">
-          <div className="text-lg font-medium text-foreground">{formatDateRange()}</div>
+        <div className="flex items-center justify-between rounded-2xl shadow-none py-2 px-4 bg-background">
+          <div className="text-base font-medium text-foreground">{formatDateRange()}</div>
           <div className="flex items-center gap-2">
             <Button 
               variant="outline" 
