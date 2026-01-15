@@ -51,7 +51,7 @@ export function ShipmentCard({ shipment, compact = false, onClick }: ShipmentCar
     
     return (
       <div
-        className={`${style.bg} ${style.borderLeft} rounded-lg py-1.5 px-2 transition-all duration-300 ease-out hover:shadow-lg hover:scale-[1.02] hover:-translate-y-0.5 cursor-pointer overflow-hidden h-7 flex items-center group`}
+        className={`${style.bg} ${style.borderLeft} rounded-lg py-1.5 px-2 transition-all duration-200 ease-out hover:shadow-md hover:-translate-y-0.5 hover:ring-1 hover:ring-border cursor-pointer overflow-hidden h-7 flex items-center group`}
         onClick={onClick}
       >
         <div className="flex-1 min-w-0">

@@ -27,6 +27,7 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     async function loadData() {
@@ -186,6 +187,19 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
 
   const today = new Date()
 
+  const toggleDayExpanded = (date: Date) => {
+    const key = date.toISOString().split("T")[0]
+    setExpandedDays((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
+  }
+
   if (loading) {
     return (
       <div className={`grid ${view === "week" ? "grid-cols-6" : "grid-cols-7"} gap-3`}>
@@ -202,45 +216,72 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
   if (view === "week") {
     return (
       <>
-        <div className="w-full border shadow-none overflow-hidden bg-background rounded-2xl">
-          <div className="grid grid-cols-6 gap-px bg-border">
+        <div className="w-full border shadow-none overflow-hidden bg-background rounded-2xl flex flex-col h-[calc(100vh-280px)]">
+          {/* Day Headers - sticky row */}
+          <div className="sticky top-0 z-10 grid grid-cols-6 bg-border">
             {calendarData.map((day, index) => {
-              const isToday = 
+              const isToday =
                 day.fullDate.getDate() === today.getDate() &&
                 day.fullDate.getMonth() === today.getMonth() &&
                 day.fullDate.getFullYear() === today.getFullYear()
-              
+
               return (
-                <div key={`${day.date}-${index}`} className="flex flex-col bg-background">
-                  {/* Day Header */}
-                  <div className={`p-4 text-center border-b ${isToday ? "bg-blue-50 dark:bg-blue-950/20 border-border" : "bg-muted/30"}`}>
-                    <div className="text-2xl font-semibold text-foreground">
-                      {day.date}
-                    </div>
-                    <div className="text-sm font-medium text-muted-foreground">
-                      {day.day}
-                    </div>
+                <div
+                  key={`header-${day.date}-${index}`}
+                  className={`p-4 text-center border-b ${
+                    isToday
+                      ? "bg-blue-50 dark:bg-blue-950/20 border-border"
+                      : "bg-muted/30"
+                  }`}
+                >
+                  <div className="text-2xl font-semibold text-foreground">
+                    {day.date}
                   </div>
-                  
-                  {/* Shipments */}
-                  <div className={`flex-1 p-3 space-y-2 min-h-[600px] overflow-y-auto ${isToday ? "bg-blue-50 dark:bg-blue-950/20" : ""}`}>
-                    {day.shipments.length > 0 ? (
-                      day.shipments.map((shipment) => (
-                        <ShipmentCard 
-                          key={shipment.id} 
-                          shipment={shipment} 
-                          onClick={() => handleShipmentClick(day.fullDate)}
-                        />
-                      ))
-                    ) : (
-                      <div className="flex items-center justify-center h-full min-h-[100px]">
-                        <span className="text-sm text-muted-foreground">No shipments</span>
-                      </div>
-                    )}
+                  <div className="text-sm font-medium text-muted-foreground">
+                    {day.day}
                   </div>
                 </div>
               )
             })}
+          </div>
+
+          {/* Scrollable content with full-height columns */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="grid grid-cols-6 bg-border">
+              {calendarData.map((day, index) => {
+                const isToday =
+                  day.fullDate.getDate() === today.getDate() &&
+                  day.fullDate.getMonth() === today.getMonth() &&
+                  day.fullDate.getFullYear() === today.getFullYear()
+
+                return (
+                  <div
+                    key={`content-${day.date}-${index}`}
+                    className={`flex flex-col bg-background ${
+                      isToday ? "bg-blue-50 dark:bg-blue-950/20" : ""
+                    }`}
+                  >
+                    <div className="flex-1 p-3 space-y-2 flex flex-col">
+                      {day.shipments.length > 0 ? (
+                        day.shipments.map((shipment) => (
+                          <ShipmentCard
+                            key={shipment.id}
+                            shipment={shipment}
+                            onClick={() => handleShipmentClick(day.fullDate)}
+                          />
+                        ))
+                      ) : (
+                        <div className="flex-1 flex items-center justify-center">
+                          <span className="text-sm text-muted-foreground">
+                            No shipments
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </div>
 
@@ -305,11 +346,17 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
                 </span>
               </div>
               
-              {/* Shipments - ultra-kompakt, 4 pro Tag */}
-              <div className={`space-y-1 flex-1 ${day.shipments.length > 4 ? 'overflow-y-auto' : ''}`}>
+              {/* Shipments - ultra-kompakt, 4 pro Tag (expandable) */}
+              {(() => {
+                const dayKey = day.fullDate.toISOString().split("T")[0]
+                const isExpanded = expandedDays.has(dayKey)
+                const visibleShipments = isExpanded ? day.shipments : day.shipments.slice(0, 4)
+
+                return (
+                  <div className={`space-y-1 flex-1 overflow-x-hidden ${day.shipments.length > 4 ? "overflow-y-auto" : ""}`}>
                 {day.shipments.length > 0 && (
                   <>
-                    {day.shipments.slice(0, 4).map((shipment) => (
+                    {visibleShipments.map((shipment) => (
                       <ShipmentCard 
                         key={shipment.id} 
                         shipment={shipment} 
@@ -317,14 +364,20 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
                         onClick={() => handleShipmentClick(day.fullDate)}
                       />
                     ))}
-                    {day.shipments.length > 4 && (
-                      <div className="text-[10px] text-center text-muted-foreground py-0.5 rounded bg-muted/50">
+                    {!isExpanded && day.shipments.length > 4 && (
+                      <button
+                        type="button"
+                        className="w-full text-[10px] text-center text-muted-foreground py-0.5 rounded bg-muted/50 hover:bg-muted/80 transition-colors cursor-pointer"
+                        onClick={() => toggleDayExpanded(day.fullDate)}
+                      >
                         +{day.shipments.length - 4} more
-                      </div>
+                      </button>
                     )}
                   </>
                 )}
-              </div>
+                  </div>
+                )
+              })()}
             </div>
           )
         })}

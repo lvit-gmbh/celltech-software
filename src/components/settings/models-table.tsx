@@ -43,17 +43,19 @@ export function ModelsTable({ activeTab = "all" }: ModelsTableProps) {
     async function loadData() {
       setLoading(true)
       try {
+        const supabase = getSupabaseClient()
+
+        // Load models
         const models = await fetchModels()
         setAllModels(models || [])
-        
+
         // Load model labels from div_frontend_options
         try {
-          const supabase = getSupabaseClient()
           const { data: modelOptions, error: modelError } = await supabase
             .from("div_frontend_options")
             .select("value, label")
             .eq("type", "Model")
-          
+
           if (!modelError && modelOptions) {
             const modelLabelsMap: Record<string, string> = {}
             modelOptions.forEach((opt: any) => {

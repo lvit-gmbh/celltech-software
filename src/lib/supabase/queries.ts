@@ -523,9 +523,12 @@ export async function fetchPricing() {
 
   try {
     const supabase = getSupabaseClient()
+    // Order by pn, then full_name (as per SQL query)
+    // Note: Filtering for NOT (type = 'Model' AND subtype = 'Main') is done in the component
     const { data, error } = await supabase
       .from("price")
       .select("*")
+      .order("pn", { ascending: true, nullsFirst: false })
       .order("full_name", { ascending: true })
 
     if (error) {
