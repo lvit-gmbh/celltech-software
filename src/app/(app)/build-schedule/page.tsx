@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { PageHeader } from "@/components/shared/page-header"
 import { Button } from "@/components/ui/button"
 import { ExpandableTabs } from "@/components/ui/expandable-tabs"
@@ -25,6 +25,37 @@ export default function BuildSchedulePage() {
   const [showFinished, setShowFinished] = useState(true)
   const [showFilterOptions, setShowFilterOptions] = useState(false)
   const [isUnscheduledOpen, setIsUnscheduledOpen] = useState(false)
+  const [tabsWidth, setTabsWidth] = useState<number>(0)
+  const tabsRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const measureWidth = () => {
+      if (tabsRef.current) {
+        const width = tabsRef.current.offsetWidth
+        setTabsWidth(width)
+      }
+    }
+    
+    // Sofort messen
+    measureWidth()
+    
+    // Nach kurzer Verzögerung nochmal messen (für initiales Rendering)
+    const timeout = setTimeout(measureWidth, 0)
+    
+    // Resize observer für dynamische Anpassung
+    const resizeObserver = new ResizeObserver(() => {
+      requestAnimationFrame(measureWidth)
+    })
+    
+    if (tabsRef.current) {
+      resizeObserver.observe(tabsRef.current)
+    }
+    
+    return () => {
+      clearTimeout(timeout)
+      resizeObserver.disconnect()
+    }
+  }, [activeTab, showFilterOptions])
 
   const tabs = [
     { value: "all", label: "All", icon: Grid3x3 },
@@ -64,11 +95,16 @@ export default function BuildSchedulePage() {
         {/* Tabs + Search + Filter + Show Finished */}
         <div className="grid grid-cols-[1fr_1fr_1fr] gap-4 items-center">
           {/* Spalte 1: Tabs */}
-          <div className="w-2/3 justify-self-start">
+          <div 
+            ref={tabsRef} 
+            className="justify-self-start" 
+            style={{ width: tabsWidth > 0 ? `${tabsWidth}px` : 'auto' }}
+          >
             <ExpandableTabs
               tabs={tabs.map(tab => ({ value: tab.value, title: tab.label, icon: tab.icon }))}
               value={activeTab}
               onValueChange={(value) => setActiveTab("build-schedule", value)}
+              className="w-full"
             />
           </div>
 
@@ -104,17 +140,20 @@ export default function BuildSchedulePage() {
         {showFilterOptions && (
           <div className="grid grid-cols-[1fr_1fr_1fr] gap-4 items-center">
             {/* Spalte 1: Ship Period Button - aligned with tabs */}
-            <div className="w-2/3 justify-self-start">
+            <div 
+              className="justify-self-start"
+              style={{ width: tabsWidth > 0 ? `${tabsWidth}px` : 'auto', minWidth: 'fit-content' }}
+            >
               <Popover>
                 <PopoverTrigger asChild>
                   <Button 
                     variant="outline" 
-                    className="gap-2 h-10 w-full"
+                    className="gap-2 w-full h-10 justify-start rounded-lg"
                   >
-                    <CalendarIcon className="h-4 w-4" />
-                    <span className="text-sm">Ship Period</span>
+                    <CalendarIcon className="h-5 w-5" />
+                    <span className="text-sm font-medium">Ship Period</span>
                     {dateRange?.from && (
-                      <span className="text-xs">
+                      <span className="text-sm">
                         {format(dateRange.from, "MM/dd/yy")}
                         {dateRange.to && ` - ${format(dateRange.to, "MM/dd/yy")}`}
                       </span>
@@ -129,6 +168,7 @@ export default function BuildSchedulePage() {
                     selected={dateRange}
                     onSelect={setDateRange}
                     numberOfMonths={2}
+                    showOutsideDays={false}
                   />
                 </PopoverContent>
               </Popover>

@@ -6,6 +6,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+import { usePagination } from "@/hooks/use-pagination"
 import type { PricingItem } from "@/types"
 import { fetchPricing } from "@/lib/supabase/queries"
 
@@ -28,6 +38,8 @@ export function PricingTable() {
     key: string
     direction: "asc" | "desc"
   } | null>(null)
+  const [pageIndex, setPageIndex] = useState(0)
+  const pageSize = 25
 
   useEffect(() => {
     async function loadData() {
@@ -145,6 +157,17 @@ export function PricingTable() {
 
   const totalItems = useMemo(() => allData.reduce((sum, group) => sum + group.totalItems, 0), [allData])
   
+  // Collect all items from all subtypes for pagination
+  const allItems = useMemo(() => {
+    const items: PricingItem[] = []
+    allData.forEach((typeGroup) => {
+      typeGroup.subtypes.forEach((subtypeGroup) => {
+        items.push(...subtypeGroup.items)
+      })
+    })
+    return items
+  }, [allData])
+  
   // Sort items within subtypes
   const sortedData = useMemo(() => {
     if (!sortConfig) return allData
@@ -218,6 +241,37 @@ export function PricingTable() {
     }))
   }, [allData, sortConfig])
 
+  // Paginate all items
+  const totalPages = Math.ceil(allItems.length / pageSize)
+  const startIndex = pageIndex * pageSize
+  const endIndex = startIndex + pageSize
+  const paginatedItems = allItems.slice(startIndex, endIndex)
+
+  // Create a map of item IDs to their paginated status
+  const paginatedItemIds = useMemo(() => {
+    return new Set(paginatedItems.map(item => item.id))
+  }, [paginatedItems])
+
+  // Filter sortedData to only show items that are on the current page
+  const paginatedData = useMemo(() => {
+    return sortedData.map((typeGroup) => ({
+      ...typeGroup,
+      subtypes: typeGroup.subtypes.map((subtypeGroup) => ({
+        ...subtypeGroup,
+        items: subtypeGroup.items.filter((item) => paginatedItemIds.has(item.id)),
+      })).filter((subtypeGroup) => subtypeGroup.items.length > 0),
+    })).filter((typeGroup) => typeGroup.subtypes.length > 0)
+  }, [sortedData, paginatedItemIds])
+
+  const { pages, showLeftEllipsis, showRightEllipsis } = usePagination({
+    currentPage: pageIndex + 1,
+    totalPages,
+    paginationItemsToDisplay: 5,
+  })
+
+  const startRow = allItems.length > 0 ? startIndex + 1 : 0
+  const endRow = Math.min(endIndex, allItems.length)
+
   const handleSort = (key: string) => {
     setSortConfig((current) => {
       if (current?.key === key) {
@@ -237,9 +291,6 @@ export function PricingTable() {
       ? <ArrowUp className="ml-1.5 h-2.5 w-2.5" />
       : <ArrowDown className="ml-1.5 h-2.5 w-2.5" />
   }
-  
-  // No pagination needed - we only have 2 types max
-  const paginatedData = useMemo(() => sortedData, [sortedData])
 
   if (loading) {
     return (
@@ -480,9 +531,54 @@ export function PricingTable() {
       </div>
       <div className="flex-shrink-0 flex items-center justify-between gap-4 border-t pt-4 mt-4 px-3">
         <div className="text-sm text-muted-foreground min-w-[200px]">
-          {allData.length} {allData.length === 1 ? 'type' : 'types'} ({totalItems} total items)
+          Showing {startRow}-{endRow} of {allItems.length} items
         </div>
-        <div className="flex-1"></div>
+        <div className="flex-1 flex items-center justify-center gap-2">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => setPageIndex((prev) => Math.max(0, prev - 1))}
+                  disabled={pageIndex === 0}
+                />
+              </PaginationItem>
+
+              {showLeftEllipsis && (
+                <PaginationItem>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              )}
+
+              {pages.map((page) => {
+                const isActive = page === pageIndex + 1
+                return (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      isActive={isActive}
+                      onClick={() => setPageIndex(page - 1)}
+                      aria-current={isActive ? "page" : undefined}
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                )
+              })}
+
+              {showRightEllipsis && (
+                <PaginationItem>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              )}
+
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => setPageIndex((prev) => Math.min(totalPages - 1, prev + 1))}
+                  disabled={pageIndex >= totalPages - 1}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
         <div className="min-w-[200px]"></div>
       </div>
     </div>

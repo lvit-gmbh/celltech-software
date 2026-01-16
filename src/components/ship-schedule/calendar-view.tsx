@@ -218,7 +218,7 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
       <>
         <div className="w-full border shadow-none overflow-hidden bg-background rounded-md flex flex-col h-[calc(100vh-280px)]">
           {/* Day Headers - sticky row */}
-          <div className="sticky top-0 z-10 grid grid-cols-6 bg-border">
+          <div className="sticky top-0 z-10 grid grid-cols-6 bg-border" style={{ width: '100%', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))' }}>
             {calendarData.map((day, index) => {
               const isToday =
                 day.fullDate.getDate() === today.getDate() &&
@@ -256,8 +256,8 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
           </div>
 
           {/* Scrollable content with full-height columns */}
-          <div className="flex-1 overflow-y-auto scrollbar-stable">
-            <div className="grid grid-cols-6 bg-border min-h-[calc(100vh-380px)]">
+          <div className="flex-1 overflow-y-auto scrollbar-stable" style={{ overflowX: 'hidden' }}>
+            <div className="grid grid-cols-6 bg-border min-h-[calc(100vh-380px)]" style={{ width: '100%', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))' }}>
               {calendarData.map((day, index) => {
                 const isToday =
                   day.fullDate.getDate() === today.getDate() &&
@@ -278,7 +278,7 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
                     }`}
                   >
                     <div className={`flex-1 p-3 space-y-2 flex flex-col ${
-                      day.shipments.length > 0 ? "bg-muted/10" : ""
+                      day.shipments.length > 0 ? "bg-muted/30" : ""
                     }`}>
                       {day.shipments.length > 0 ? (
                         day.shipments.map((shipment) => (
@@ -320,7 +320,7 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
   return (
     <div className="rounded-md border shadow-none overflow-hidden bg-background flex flex-col h-[calc(100vh-280px)]">
       {/* Day headers - sticky */}
-      <div className="sticky top-0 z-10 grid grid-cols-7 border-b">
+      <div className="sticky top-0 z-10 grid grid-cols-7 border-b" style={{ width: '100%', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, index) => {
           const isWeekend = index === 0 || index === 6 // Sonntag oder Samstag
           return (
@@ -339,8 +339,8 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
       </div>
       
       {/* Calendar grid - scrollable */}
-      <div className="flex-1 overflow-y-auto scrollbar-stable">
-        <div className="grid grid-cols-7">
+      <div className="flex-1 overflow-y-auto scrollbar-stable" style={{ overflowX: 'hidden' }}>
+        <div className="grid grid-cols-7" style={{ width: '100%', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
         {calendarData.map((day, index) => {
           const isCurrentMonth = day.fullDate.getMonth() === currentDate.getMonth()
           const isToday = 

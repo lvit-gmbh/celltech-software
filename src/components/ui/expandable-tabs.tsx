@@ -58,7 +58,7 @@ export function ExpandableTabs({
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-3 rounded-md border border-border/10 bg-card/40 p-1.5 shadow-none dark:bg-card/30 dark:border-border/20",
+        "flex items-center gap-2 rounded-lg border border-input bg-card/40 px-1.5 h-10 shadow-none dark:bg-card/30",
         className
       )}
     >
@@ -76,10 +76,10 @@ export function ExpandableTabs({
             onClick={() => handleSelect(tab.value)}
             transition={transition}
             className={cn(
-              "relative flex items-center gap-1.5 text-sm font-medium transition-all duration-300",
+              "relative flex items-center gap-1.5 text-sm font-medium transition-all duration-300 flex-shrink-0 h-7",
               isSelected
-                ? "rounded-md bg-secondary dark:bg-zinc-800 px-4 py-2 text-foreground shadow-sm"
-                : "rounded-md px-4 py-2 text-foreground/90 hover:text-foreground dark:text-foreground"
+                ? "rounded-md bg-secondary dark:bg-zinc-800 px-3 text-foreground"
+                : "rounded-md px-3 text-foreground/90 hover:text-foreground dark:text-foreground"
             )}
           >
             <Icon size={20} className="shrink-0" />

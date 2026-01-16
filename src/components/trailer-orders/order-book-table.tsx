@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
+import Link from "next/link"
 import type { ColumnDef, SortingState } from "@tanstack/react-table"
 import {
   flexRender,
@@ -11,6 +12,7 @@ import {
 } from "@tanstack/react-table"
 // Using native table elements for sticky header support
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Check, Filter, Download, RefreshCw, Eye, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import {
   Pagination,
@@ -71,14 +73,19 @@ const createColumns = (
       
       // Always show both lines - use "null" if data is missing
       return (
-        <div className="flex flex-col gap-1">
+        <Link 
+          href={`/trailer-orders/${order.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex flex-col gap-1 hover:text-primary transition-colors cursor-pointer"
+        >
           <span className="text-sm font-medium text-foreground">
             AST #{assetNo !== null ? assetNo : "null"}
           </span>
           <span className="text-sm text-foreground">
             PO #{po !== null ? po : "null"}
           </span>
-        </div>
+        </Link>
       )
     },
   },
@@ -246,6 +253,37 @@ const createColumns = (
       if (!modelValue) return null
       // Look up model label from modelLabels map, fallback to model value if not found
       const modelLabel = modelLabels[String(modelValue)] || modelValue
+      
+      // Determine background color based on suffix (same logic as Dashboard)
+      let bgColor = ""
+      let textColor = ""
+      let borderClass = ""
+      
+      if (modelLabel.endsWith("-W")) {
+        bgColor = "bg-white dark:bg-white"
+        textColor = "text-black dark:text-black"
+        borderClass = "border border-border"
+      } else if (modelLabel.endsWith("-G")) {
+        bgColor = "bg-gray-500 dark:bg-gray-500"
+        textColor = "text-white dark:text-white"
+      } else if (modelLabel.endsWith("-B")) {
+        bgColor = "bg-black dark:bg-black"
+        textColor = "text-white dark:text-white"
+      }
+      
+      // If a suffix color is found, render as Badge with background
+      if (bgColor) {
+        // Disable hover effects and ensure text is visible in dark mode
+        const hoverOverride = modelLabel.endsWith("-W") 
+          ? "hover:bg-white dark:hover:bg-white" 
+          : modelLabel.endsWith("-G")
+          ? "hover:bg-gray-500 dark:hover:bg-gray-500"
+          : "hover:bg-black dark:hover:bg-black"
+        
+        return <Badge className={`${bgColor} ${textColor} ${borderClass} ${hoverOverride} transition-none`}>{modelLabel}</Badge>
+      }
+      
+      // Otherwise render as plain text
       return <span className="text-xs text-foreground">{modelLabel}</span>
     },
   },

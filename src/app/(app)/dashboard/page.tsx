@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Search, Printer, ChevronDown, ChevronRight, ArrowRight, ArrowUpDown, ArrowUp, ArrowDown, Grid3x3, FileText, ClipboardList } from "lucide-react"
+import { Search, Printer, ChevronDown, ChevronRight, ArrowRight, ArrowUpDown, ArrowUp, ArrowDown, Grid3x3, FileText, ClipboardList, CheckCircle2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -18,6 +18,16 @@ import { CalendarIcon } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+import { usePagination } from "@/hooks/use-pagination"
 import { format } from "date-fns"
 import type { DateRange } from "react-day-picker"
 import { fetchDashboardData, fetchDealers, updateOrderVIN } from "@/lib/supabase/queries"
@@ -63,6 +73,10 @@ export default function DashboardPage() {
   const [exportTitle, setExportTitle] = useState<string>("")
   const [sortColumn, setSortColumn] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<"asc" | "desc" | null>(null)
+  const [statusSearchQuery, setStatusSearchQuery] = useState<string>("")
+  const [openSelectId, setOpenSelectId] = useState<number | null>(null)
+  const [pageIndex, setPageIndex] = useState(0)
+  const pageSize = 25
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
@@ -136,10 +150,11 @@ export default function DashboardPage() {
     loadData()
   }, []) // Load once, don't reload when filter changes
 
-  // Reset sorting when primary tab changes
+  // Reset sorting and pagination when primary tab changes
   useEffect(() => {
     setSortColumn(null)
     setSortDirection(null)
+    setPageIndex(0)
   }, [primaryTab])
 
   // Memoized status counts - apply brightview filter for counts
@@ -291,18 +306,39 @@ export default function DashboardPage() {
     return filtered
   }, [allOrders, primaryTab, debouncedSearchQuery, dealers, dateRange, sortColumn, sortDirection, sortData, secondaryTab])
 
-  // Group data for Special tab
+  // Paginate filtered data
+  const totalCount = filteredData.length
+  const totalPages = Math.ceil(totalCount / pageSize)
+  const startIndex = pageIndex * pageSize
+  const endIndex = startIndex + pageSize
+  const paginatedData = filteredData.slice(startIndex, endIndex)
+
+  const { pages, showLeftEllipsis, showRightEllipsis } = usePagination({
+    currentPage: pageIndex + 1,
+    totalPages,
+    paginationItemsToDisplay: 5,
+  })
+
+  const startRow = totalCount > 0 ? startIndex + 1 : 0
+  const endRow = Math.min(endIndex, totalCount)
+
+  // Reset page index when filters change
+  useEffect(() => {
+    setPageIndex(0)
+  }, [primaryTab, secondaryTab, debouncedSearchQuery, dateRange])
+
+  // Group data for Special tab (use paginated data)
   const groupedSpecialData = useMemo(() => {
     if (primaryTab !== "special") return {}
     
     const groups: Record<string, OrderWithStatus[]> = {}
-    filteredData.forEach((order) => {
+    paginatedData.forEach((order) => {
       const groupKey = order.sequ ? String(order.sequ) : "NEED FIX"
       if (!groups[groupKey]) groups[groupKey] = []
       groups[groupKey].push(order)
     })
     return groups
-  }, [filteredData, primaryTab])
+  }, [paginatedData, primaryTab])
 
   const toggleGroup = useCallback((groupKey: string) => {
     setExpandedGroups((prev) => {
@@ -316,15 +352,41 @@ export default function DashboardPage() {
     })
   }, [])
 
-  const isGreenModel = (model: string | null | undefined) => model?.endsWith("-G") ?? false
-
-  // Render model badge
+  // Render model badge with background color based on suffix
   const renderModel = (model: string | null | undefined) => {
     if (!model) return <span className="text-xs text-foreground">-</span>
     const label = modelLabels[String(model)] || model
-    if (isGreenModel(label)) {
-      return <Badge className="bg-emerald-600 text-white">{label}</Badge>
+    
+    // Determine background color based on suffix
+    let bgColor = ""
+    let textColor = ""
+    let borderClass = ""
+    
+    if (label.endsWith("-W")) {
+      bgColor = "bg-white dark:bg-white"
+      textColor = "text-black dark:text-black"
+      borderClass = "border border-border"
+    } else if (label.endsWith("-G")) {
+      bgColor = "bg-gray-500 dark:bg-gray-500"
+      textColor = "text-white dark:text-white"
+    } else if (label.endsWith("-B")) {
+      bgColor = "bg-black dark:bg-black"
+      textColor = "text-white dark:text-white"
     }
+    
+    // If a suffix color is found, render as Badge with background
+    if (bgColor) {
+      // Disable hover effects and ensure text is visible in dark mode
+      const hoverOverride = label.endsWith("-W") 
+        ? "hover:bg-white dark:hover:bg-white" 
+        : label.endsWith("-G")
+        ? "hover:bg-gray-500 dark:hover:bg-gray-500"
+        : "hover:bg-black dark:hover:bg-black"
+      
+      return <Badge className={`${bgColor} ${textColor} ${borderClass} ${hoverOverride} transition-none`}>{label}</Badge>
+    }
+    
+    // Otherwise render as plain text
     return <span className="text-xs text-foreground">{label}</span>
   }
 
@@ -358,7 +420,18 @@ export default function DashboardPage() {
 
   // Render editable VIN cell content
   const renderEditableVIN = (order: OrderWithStatus) => {
+    const isShipped = order.computedStatus === "shipped"
+    
     if (editingVIN === order.id) {
+      // Prevent editing if shipped
+      if (isShipped) {
+        handleVINCancel()
+        return (
+          <span className="text-xs text-foreground">
+            {order.vin_num || <span className="text-muted-foreground/50">-</span>}
+          </span>
+        )
+      }
       return (
         <Input
           value={vinValue}
@@ -378,6 +451,17 @@ export default function DashboardPage() {
         />
       )
     }
+    
+    // If shipped, render as non-editable text
+    if (isShipped) {
+      return (
+        <span className="text-xs text-foreground">
+          {order.vin_num || <span className="text-muted-foreground/50">-</span>}
+        </span>
+      )
+    }
+    
+    // Otherwise, render as editable
     return (
       <span
         className="text-xs text-foreground cursor-pointer hover:bg-muted/30 rounded px-2 py-1 block"
@@ -390,21 +474,82 @@ export default function DashboardPage() {
   }
 
   // Render status select
-  const renderStatusSelect = () => (
-    <Select>
-      <SelectTrigger className="h-auto w-full border-0 bg-transparent px-0 py-0 text-xs text-muted-foreground hover:text-foreground cursor-pointer focus:ring-0 focus:ring-offset-0 shadow-none rounded-none [&>svg]:hidden">
-        <SelectValue placeholder="select new status" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="welded">Welded</SelectItem>
-        <SelectItem value="zink">Zink</SelectItem>
-        <SelectItem value="assembled">Assembled</SelectItem>
-        <SelectItem value="trailer-build">Trailer Build</SelectItem>
-        <SelectItem value="ready-to-ship">Ready to Ship</SelectItem>
-        <SelectItem value="shipped">Shipped</SelectItem>
-      </SelectContent>
-    </Select>
-  )
+  const renderStatusSelect = (orderId: number) => {
+    const allStatusOptions = [
+      { value: "welded", label: "WELDED", color: "bg-violet-500" },
+      { value: "zink", label: "ZINK", color: "bg-amber-500" },
+      { value: "returned", label: "RETURNED", color: "bg-amber-500" },
+      { value: "assembled", label: "ASSEMBLED", color: "bg-sky-500" },
+      { value: "wire", label: "WIRE", color: "bg-green-400" },
+      { value: "floor", label: "FLOOR", color: "bg-sky-500" },
+      { value: "mounting", label: "MOUNTING", color: "bg-green-400" },
+      { value: "roof", label: "ROOF", color: "bg-sky-500" },
+      { value: "trim", label: "TRIM", color: "bg-sky-300" },
+      { value: "options", label: "OPTIONS", color: "bg-green-300" },
+      { value: "bv-options", label: "BV OPTIONS", color: "bg-sky-300" },
+      { value: "final-qc", label: "FINAL / QC", color: "bg-orange-300" },
+      { value: "need-fix", label: "NEED FIX", color: "bg-rose-300" },
+    ]
+
+    // Only filter options if this select is currently open
+    const isOpen = openSelectId === orderId
+    const filteredOptions = isOpen && statusSearchQuery
+      ? allStatusOptions.filter((option) =>
+          option.label.toLowerCase().includes(statusSearchQuery.toLowerCase())
+        )
+      : allStatusOptions
+
+    return (
+      <Select onOpenChange={(open) => {
+        if (open) {
+          setOpenSelectId(orderId)
+        } else {
+          setOpenSelectId(null)
+          setStatusSearchQuery("")
+        }
+      }}>
+        <SelectTrigger className="h-auto w-full border-0 bg-transparent px-0 py-0 text-xs text-muted-foreground hover:text-foreground cursor-pointer focus:ring-0 focus:ring-offset-0 shadow-none rounded-none [&>svg]:hidden [&>span]:!pl-0">
+          <SelectValue placeholder="select new status" className="[&>span]:!pl-0" />
+        </SelectTrigger>
+        <SelectContent className="p-0 [&>button:first-child]:hidden [&>button:last-child]:hidden [&>[role=group]]:!h-auto [&>[role=group]]:!min-h-0 [&_[role=option]>span:first-child]:!hidden [&_[role=option]>span:first-child>span]:!hidden [&_[role=option]_svg]:hidden">
+          <div className="px-3 pt-3 pb-2 border-b">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder="Search status..."
+                value={isOpen ? statusSearchQuery : ""}
+                onChange={(e) => setStatusSearchQuery(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+                className="h-8 pl-8 pr-2 text-xs border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none rounded-none"
+                autoFocus
+              />
+            </div>
+          </div>
+          <div className="max-h-[256px] overflow-y-auto">
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((option) => (
+                <SelectItem 
+                  key={option.value} 
+                  value={option.value}
+                  className="pl-2 pr-2 py-1.5 [&>span:first-child]:!hidden [&>span:first-child>span]:!hidden"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`w-3 h-3 rounded-full ${option.color} flex-shrink-0`} />
+                    <span>{option.label}</span>
+                  </div>
+                </SelectItem>
+              ))
+            ) : (
+              <div className="py-6 text-center text-sm text-muted-foreground">
+                No status found
+              </div>
+            )}
+          </div>
+        </SelectContent>
+      </Select>
+    )
+  }
 
   // Render sortable column header
   const renderSortableHeader = useCallback((column: string, label: string) => {
@@ -432,29 +577,36 @@ export default function DashboardPage() {
   }, [sortColumn, sortDirection, handleSort])
 
   // Render action button with tooltip
-  const renderActionButton = () => (
-    <div className="opacity-0 group-hover:opacity-100 transition-all duration-200">
-      <TooltipProvider delayDuration={300}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={(e) => {
-                e.stopPropagation()
-                // TODO: Implement increment status logic
-              }}
-            >
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Increment trailer&apos;s status</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    </div>
-  )
+  const renderActionButton = (type: "schedule" | "special" = "schedule") => {
+    const isSpecial = type === "special"
+    return (
+      <div className="opacity-0 group-hover:opacity-100 transition-all duration-200">
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  // TODO: Implement increment status logic
+                }}
+              >
+                {isSpecial ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                ) : (
+                  <span className="text-lg font-semibold text-foreground">&gt;</span>
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{isSpecial ? "Mark as completed" : "Increment trailer&apos;s status"}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    )
+  }
 
   // Render table based on current tab
   const renderTable = () => {
@@ -494,8 +646,8 @@ export default function DashboardPage() {
             </tr>
           </thead>
           <tbody className="[&_tr:last-child]:border-0">
-            {filteredData.length > 0 ? (
-              filteredData.map((order) => (
+            {paginatedData.length > 0 ? (
+              paginatedData.map((order) => (
                 <tr key={order.id} className="group border-b transition-colors hover:bg-muted/50">
                   <td className="py-1.5 px-4 align-middle"><span className="text-xs text-foreground">{dealers[order.dealer_id] || "-"}</span></td>
                   <td className="py-1.5 px-4 align-middle"><span className="text-xs text-foreground">{order.asset_no ? `#${order.asset_no}` : order.po ? `PO ${order.po}` : "-"}</span></td>
@@ -505,7 +657,7 @@ export default function DashboardPage() {
                   <td className="py-1.5 px-4 align-middle"><span className="text-xs text-foreground">-</span></td>
                   <td className="py-1.5 px-4 align-middle border-l">
                     <div className="flex items-center gap-2">
-                      {renderStatusSelect()}
+                      {renderStatusSelect(order.id)}
                       {renderActionButton()}
                     </div>
                   </td>
@@ -563,8 +715,8 @@ export default function DashboardPage() {
                         <td className="py-1.5 px-4 align-middle"><span className="text-xs text-foreground">-</span></td>
                         <td className="py-1.5 px-4 align-middle border-l">
                           <div className="flex items-center gap-2">
-                            {renderStatusSelect()}
-                            {renderActionButton()}
+                            {renderStatusSelect(order.id)}
+                            {renderActionButton("special")}
                           </div>
                         </td>
                       </tr>
@@ -595,8 +747,8 @@ export default function DashboardPage() {
             </tr>
           </thead>
           <tbody className="[&_tr:last-child]:border-0">
-            {filteredData.length > 0 ? (
-              filteredData.map((order) => (
+            {paginatedData.length > 0 ? (
+              paginatedData.map((order) => (
                 <tr key={order.id} className="border-b transition-colors hover:bg-muted/50">
                   <td className="py-1.5 px-4 align-middle"><span className="text-xs text-foreground">{dealers[order.dealer_id] || "-"}</span></td>
                   <td className="py-1.5 px-4 align-middle">{renderModel(order.model)}</td>
@@ -628,8 +780,8 @@ export default function DashboardPage() {
             </tr>
           </thead>
           <tbody className="[&_tr:last-child]:border-0">
-            {filteredData.length > 0 ? (
-              filteredData.map((order) => (
+            {paginatedData.length > 0 ? (
+              paginatedData.map((order) => (
                 <tr key={order.id} className="border-b transition-colors hover:bg-muted/50">
                   <td className="py-1.5 px-4 align-middle"><span className="text-xs text-foreground">{dealers[order.dealer_id] || "-"}</span></td>
                   <td className="py-1.5 px-4 align-middle"><span className="text-xs text-foreground">{order.asset_no ? `#${order.asset_no}` : order.po ? `PO ${order.po}` : "-"}</span></td>
@@ -661,10 +813,10 @@ export default function DashboardPage() {
             {renderSortableHeader("shipDate", "Ship Date")}
             <th className="h-9 px-4 py-1.5 text-left align-middle font-medium text-muted-foreground bg-background border-b border-l">Move to Status</th>
           </tr>
-        </thead>
-        <tbody className="[&_tr:last-child]:border-0">
-          {filteredData.length > 0 ? (
-            filteredData.map((order) => {
+          </thead>
+          <tbody className="[&_tr:last-child]:border-0">
+            {paginatedData.length > 0 ? (
+              paginatedData.map((order) => {
               // For trailer-build, show meaningful status from sequ or use computed status
               let subStatus: string
               if (primaryTab === "trailer-build") {
@@ -703,7 +855,7 @@ export default function DashboardPage() {
                   <td className="py-1.5 px-4 align-middle"><span className="text-xs text-foreground">-</span></td>
                   <td className="py-1.5 px-4 align-middle border-l">
                     <div className="flex items-center gap-2">
-                      {renderStatusSelect()}
+                      {renderStatusSelect(order.id)}
                       {renderActionButton()}
                     </div>
                   </td>
@@ -837,11 +989,82 @@ export default function DashboardPage() {
       </div>
 
       {/* Dashboard Table - Scrollable */}
-      <div className="flex h-full flex-col">
-        <div className="overflow-hidden rounded-lg border shadow-none h-[calc(100vh-300px)]">
+      <div className="flex h-full flex-col min-h-0">
+        <div className="overflow-hidden rounded-lg border shadow-none flex-1 min-h-0">
           <div className="h-full overflow-auto">
             {renderTable()}
           </div>
+        </div>
+        
+        {/* Pagination Footer */}
+        <div className="flex-shrink-0 flex items-center justify-between gap-4 border-t pt-4 mt-4 px-4 bg-background">
+          <div className="text-sm text-muted-foreground min-w-[200px]">
+            {totalCount > 0 ? (
+              <>Showing {startRow}-{endRow} of {totalCount}</>
+            ) : (
+              <>No results</>
+            )}
+          </div>
+          {totalCount > 0 && totalPages > 0 && (
+            <div className="flex-1 flex items-center justify-center gap-2">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => setPageIndex((prev) => Math.max(0, prev - 1))}
+                      disabled={pageIndex === 0}
+                    />
+                  </PaginationItem>
+
+                  {showLeftEllipsis && (
+                    <PaginationItem>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  )}
+
+                  {pages.length > 0 ? (
+                    pages.map((page) => {
+                      const isActive = page === pageIndex + 1
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            isActive={isActive}
+                            onClick={() => setPageIndex(page - 1)}
+                            aria-current={isActive ? "page" : undefined}
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )
+                    })
+                  ) : (
+                    <PaginationItem>
+                      <PaginationLink 
+                        isActive={true} 
+                        onClick={() => setPageIndex(0)}
+                      >
+                        1
+                      </PaginationLink>
+                    </PaginationItem>
+                  )}
+
+                  {showRightEllipsis && (
+                    <PaginationItem>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  )}
+
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => setPageIndex((prev) => Math.min(totalPages - 1, prev + 1))}
+                      disabled={pageIndex >= totalPages - 1}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
+          <div className="min-w-[200px]"></div>
         </div>
       </div>
 

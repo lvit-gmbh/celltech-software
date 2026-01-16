@@ -80,6 +80,17 @@
     transition-timing-function: ease;
     transition-duration: 0.5s;
   }
+  
+  /* Lighter placeholder text everywhere */
+  input::placeholder,
+  textarea::placeholder {
+    color: hsl(var(--muted-foreground) / 0.9);
+  }
+  
+  /* For Radix Select placeholder */
+  [data-placeholder] {
+    color: hsl(var(--muted-foreground) / 0.9);
+  }
 }
 
 /* Modern Scrollbar Styling for Tables */
@@ -166,6 +177,24 @@
   /* Prevent layout shift from scrollbar */
   .scrollbar-stable {
     scrollbar-gutter: stable;
+    scrollbar-width: thin;
+  }
+  
+  .scrollbar-stable::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .scrollbar-stable::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .scrollbar-stable::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 4px;
+  }
+  
+  .scrollbar-stable::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.3);
   }
 
   .dark .overflow-auto,
