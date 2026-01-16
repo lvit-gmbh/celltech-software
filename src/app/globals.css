@@ -197,6 +197,79 @@
     background: hsl(var(--muted-foreground) / 0.3);
   }
 
+  /* Overlay scrollbar for calendar - doesn't take up space */
+  .scrollbar-overlay {
+    scrollbar-width: thin;
+    scrollbar-gutter: stable;
+  }
+  
+  .scrollbar-overlay::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .scrollbar-overlay::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .scrollbar-overlay::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  
+  .scrollbar-overlay::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.3);
+    background-clip: padding-box;
+  }
+  
+  /* Ensure header and content have same width by reserving space for scrollbar */
+  .calendar-container {
+    position: relative;
+  }
+  
+  /* Reserve space for scrollbar in header to match content */
+  .calendar-header {
+    padding-right: 8px; /* Reserve space for scrollbar */
+  }
+  
+  .calendar-content {
+    /* Scrollbar takes up space naturally */
+  }
+  
+  /* For browsers that support scrollbar-gutter, use it instead */
+  @supports (scrollbar-gutter: stable) {
+    .calendar-header {
+      scrollbar-gutter: stable;
+      padding-right: 0;
+    }
+    
+    .calendar-content {
+      scrollbar-gutter: stable;
+    }
+  }
+  
+  /* Webkit browsers - ensure scrollbar doesn't shift content */
+  .calendar-content::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .calendar-content::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .calendar-content::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  
+  .calendar-content::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.3);
+    background-clip: padding-box;
+  }
+
   .dark .overflow-auto,
   .dark .overflow-x-auto,
   .dark .overflow-y-auto,

@@ -216,9 +216,11 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
   if (view === "week") {
     return (
       <>
-        <div className="w-full border shadow-none overflow-hidden bg-background rounded-md flex flex-col h-[calc(100vh-280px)]">
-          {/* Day Headers - sticky row */}
-          <div className="sticky top-0 z-10 grid grid-cols-6 bg-border" style={{ width: '100%', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))' }}>
+        <div className="w-full border shadow-none overflow-hidden bg-background rounded-md h-[calc(100vh-280px)] overflow-y-auto scrollbar-overlay">
+          {/* Day Headers - sticky row inside scrollable container */}
+          <div className="sticky top-0 z-10 grid grid-cols-6 border-b border-gray-300 dark:border-border" style={{ 
+            gridTemplateColumns: 'repeat(6, minmax(0, 1fr))'
+          }}>
             {calendarData.map((day, index) => {
               const isToday =
                 day.fullDate.getDate() === today.getDate() &&
@@ -226,16 +228,17 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
                 day.fullDate.getFullYear() === today.getFullYear()
               const dayOfWeek = day.fullDate.getDay()
               const isWeekend = dayOfWeek === 0 || dayOfWeek === 6 // 0 = Sonntag, 6 = Samstag
+              const isLastColumn = index === calendarData.length - 1
 
               return (
                 <div
                   key={`header-${day.date}-${index}`}
-                  className={`p-3 text-center ${
+                  className={`p-3 text-center ${!isLastColumn ? "border-r border-gray-300 dark:border-border" : ""} ${
                     isToday
-                      ? "bg-blue-50 dark:bg-blue-950/20 border-b-2 border-border"
+                      ? "bg-blue-100 dark:bg-blue-950"
                       : isWeekend
-                        ? "bg-muted/40 border-b border-border"
-                        : "bg-muted/30 border-b border-border"
+                        ? "bg-gray-200 dark:bg-zinc-800"
+                        : "bg-gray-100 dark:bg-zinc-900"
                   }`}
                 >
                   <div className="flex items-center justify-center gap-2">
@@ -255,51 +258,52 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
             })}
           </div>
 
-          {/* Scrollable content with full-height columns */}
-          <div className="flex-1 overflow-y-auto scrollbar-stable" style={{ overflowX: 'hidden' }}>
-            <div className="grid grid-cols-6 bg-border min-h-[calc(100vh-380px)]" style={{ width: '100%', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))' }}>
-              {calendarData.map((day, index) => {
-                const isToday =
-                  day.fullDate.getDate() === today.getDate() &&
-                  day.fullDate.getMonth() === today.getMonth() &&
-                  day.fullDate.getFullYear() === today.getFullYear()
-                const dayOfWeek = day.fullDate.getDay()
-                const isWeekend = dayOfWeek === 0 || dayOfWeek === 6 // 0 = Sonntag, 6 = Samstag
+          {/* Content grid - same width as header, fills remaining height */}
+          <div className="grid grid-cols-6 h-[calc(100%-52px)]" style={{ 
+            gridTemplateColumns: 'repeat(6, minmax(0, 1fr))'
+          }}>
+            {calendarData.map((day, index) => {
+              const isToday =
+                day.fullDate.getDate() === today.getDate() &&
+                day.fullDate.getMonth() === today.getMonth() &&
+                day.fullDate.getFullYear() === today.getFullYear()
+              const dayOfWeek = day.fullDate.getDay()
+              const isWeekend = dayOfWeek === 0 || dayOfWeek === 6 // 0 = Sonntag, 6 = Samstag
+              const isLastColumn = index === calendarData.length - 1
 
-                return (
-                  <div
-                    key={`content-${day.date}-${index}`}
-                    className={`flex flex-col min-h-[calc(100vh-380px)] ${
-                      isToday 
-                        ? "bg-blue-50 dark:bg-blue-950/20" 
-                        : isWeekend 
-                          ? "bg-muted/40" 
-                          : "bg-background"
-                    }`}
-                  >
-                    <div className={`flex-1 p-3 space-y-2 flex flex-col ${
-                      day.shipments.length > 0 ? "bg-muted/30" : ""
-                    }`}>
-                      {day.shipments.length > 0 ? (
-                        day.shipments.map((shipment) => (
-                          <ShipmentCard
-                            key={shipment.id}
-                            shipment={shipment}
-                            onClick={() => handleShipmentClick(day.fullDate)}
-                          />
-                        ))
-                      ) : (
-                        <div className="flex-1 flex items-center justify-center">
-                          <span className="text-sm text-muted-foreground">
-                            No shipments
-                          </span>
-                        </div>
-                      )}
-                    </div>
+              return (
+                <div
+                  key={`content-${day.date}-${index}`}
+                  className={`flex flex-col h-full ${!isLastColumn ? "border-r border-gray-300 dark:border-border" : ""} ${
+                    isToday 
+                      ? "bg-blue-50 dark:bg-blue-950/20" 
+                      : isWeekend 
+                        ? "bg-muted/40" 
+                        : "bg-background"
+                  }`}
+                >
+                  <div className={`flex-1 p-3 space-y-2 flex flex-col ${
+                    day.shipments.length > 0 ? "bg-muted/30" : ""
+                  }`}>
+                    {day.shipments.length > 0 ? (
+                      day.shipments.map((shipment) => (
+                        <ShipmentCard
+                          key={shipment.id}
+                          shipment={shipment}
+                          onClick={() => handleShipmentClick(day.fullDate)}
+                        />
+                      ))
+                    ) : (
+                      <div className="flex-1 flex items-center justify-center">
+                        <span className="text-sm text-muted-foreground">
+                          No shipments
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )
-              })}
-            </div>
+                </div>
+              )
+            })}
           </div>
         </div>
 
@@ -318,18 +322,21 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
 
   // Month view
   return (
-    <div className="rounded-md border shadow-none overflow-hidden bg-background flex flex-col h-[calc(100vh-280px)]">
-      {/* Day headers - sticky */}
-      <div className="sticky top-0 z-10 grid grid-cols-7 border-b" style={{ width: '100%', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
+    <div className="rounded-md border shadow-none overflow-hidden bg-background h-[calc(100vh-280px)] overflow-y-auto scrollbar-overlay">
+      {/* Day headers - sticky inside scrollable container */}
+      <div className="sticky top-0 z-10 grid grid-cols-7 border-b border-gray-300 dark:border-border" style={{ 
+        gridTemplateColumns: 'repeat(7, minmax(0, 1fr))'
+      }}>
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, index) => {
           const isWeekend = index === 0 || index === 6 // Sonntag oder Samstag
+          const isLastColumn = index === 6
           return (
             <div 
               key={day} 
-              className={`p-3 text-center text-sm font-semibold border-r border-border ${
+              className={`p-3 text-center text-sm font-semibold ${!isLastColumn ? "border-r border-gray-300 dark:border-border" : ""} ${
                 isWeekend 
-                  ? "bg-muted/40 text-muted-foreground/70" 
-                  : "bg-muted/30 text-muted-foreground"
+                  ? "bg-gray-200 dark:bg-zinc-800 text-muted-foreground/70" 
+                  : "bg-gray-100 dark:bg-zinc-900 text-muted-foreground"
               }`}
             >
               {day}
@@ -338,9 +345,10 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
         })}
       </div>
       
-      {/* Calendar grid - scrollable */}
-      <div className="flex-1 overflow-y-auto scrollbar-stable" style={{ overflowX: 'hidden' }}>
-        <div className="grid grid-cols-7" style={{ width: '100%', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
+      {/* Calendar grid - same width as header */}
+      <div className="grid grid-cols-7" style={{ 
+        gridTemplateColumns: 'repeat(7, minmax(0, 1fr))'
+      }}>
         {calendarData.map((day, index) => {
           const isCurrentMonth = day.fullDate.getMonth() === currentDate.getMonth()
           const isToday = 
@@ -349,13 +357,15 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
             day.fullDate.getFullYear() === today.getFullYear()
           const dayOfWeek = day.fullDate.getDay()
           const isWeekend = dayOfWeek === 0 || dayOfWeek === 6 // 0 = Sonntag, 6 = Samstag
+          const isLastColumn = (index + 1) % 7 === 0 // Letzte Spalte (Samstag)
+          const isLastRow = index >= calendarData.length - 7 // Letzte Reihe
           
           // Days not in current month - grau wenn Wochenende
           if (!isCurrentMonth) {
             return (
               <div
                 key={`${day.date}-${index}`}
-                className={`min-h-[110px] border-r border-b border-border ${
+                className={`min-h-[110px] ${!isLastColumn ? "border-r border-gray-300 dark:border-border" : ""} ${!isLastRow ? "border-b border-gray-300 dark:border-border" : ""} ${
                   isWeekend ? "bg-muted/40" : "bg-background"
                 }`}
                 style={{ padding: '0.375rem' }}
@@ -368,7 +378,7 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
           return (
             <div
               key={`${day.date}-${index}`}
-              className={`flex flex-col min-h-[110px] border-r border-b border-border ${
+              className={`flex flex-col min-h-[110px] ${!isLastColumn ? "border-r border-gray-300 dark:border-border" : ""} ${!isLastRow ? "border-b border-gray-300 dark:border-border" : ""} ${
                 isToday 
                   ? "bg-blue-50 dark:bg-blue-950/20" 
                   : isWeekend 
@@ -392,34 +402,33 @@ export function ShipScheduleCalendar({ view, currentDate, searchQuery = "" }: Ca
 
                 return (
                   <div className={`space-y-1 flex-1 overflow-x-hidden ${day.shipments.length > 4 ? "overflow-y-auto" : ""}`}>
-                {day.shipments.length > 0 && (
-                  <>
-                    {visibleShipments.map((shipment) => (
-                      <ShipmentCard 
-                        key={shipment.id} 
-                        shipment={shipment} 
-                        compact 
-                        onClick={() => handleShipmentClick(day.fullDate)}
-                      />
-                    ))}
-                    {!isExpanded && day.shipments.length > 4 && (
-                      <button
-                        type="button"
-                        className="w-full text-[10px] text-center text-muted-foreground py-0.5 rounded bg-muted/50 hover:bg-muted/80 transition-colors cursor-pointer"
-                        onClick={() => toggleDayExpanded(day.fullDate)}
-                      >
-                        +{day.shipments.length - 4} more
-                      </button>
+                    {day.shipments.length > 0 && (
+                      <>
+                        {visibleShipments.map((shipment) => (
+                          <ShipmentCard 
+                            key={shipment.id} 
+                            shipment={shipment} 
+                            compact 
+                            onClick={() => handleShipmentClick(day.fullDate)}
+                          />
+                        ))}
+                        {!isExpanded && day.shipments.length > 4 && (
+                          <button
+                            type="button"
+                            className="w-full text-[10px] text-center text-muted-foreground py-0.5 rounded bg-muted/50 hover:bg-muted/80 transition-colors cursor-pointer"
+                            onClick={() => toggleDayExpanded(day.fullDate)}
+                          >
+                            +{day.shipments.length - 4} more
+                          </button>
+                        )}
+                      </>
                     )}
-                  </>
-                )}
                   </div>
                 )
               })()}
             </div>
           )
         })}
-        </div>
       </div>
 
       {/* Shipment Details Dialog */}
